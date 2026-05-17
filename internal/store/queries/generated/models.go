@@ -26,6 +26,38 @@ type AiSystemDetail struct {
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 }
 
+type Assessment struct {
+	ID          pgtype.UUID        `json:"id"`
+	OrgID       pgtype.UUID        `json:"org_id"`
+	AssetID     pgtype.UUID        `json:"asset_id"`
+	TemplateID  pgtype.UUID        `json:"template_id"`
+	Status      string             `json:"status"`
+	StartedBy   pgtype.UUID        `json:"started_by"`
+	CompletedAt pgtype.Timestamptz `json:"completed_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type AssessmentResponse struct {
+	ID           pgtype.UUID        `json:"id"`
+	AssessmentID pgtype.UUID        `json:"assessment_id"`
+	QuestionID   pgtype.UUID        `json:"question_id"`
+	Answer       []byte             `json:"answer"`
+	AnsweredBy   pgtype.UUID        `json:"answered_by"`
+	AnsweredAt   pgtype.Timestamptz `json:"answered_at"`
+	Note         pgtype.Text        `json:"note"`
+}
+
+type AssessmentTemplate struct {
+	ID          pgtype.UUID        `json:"id"`
+	OrgID       pgtype.UUID        `json:"org_id"`
+	Key         string             `json:"key"`
+	Title       string             `json:"title"`
+	Description pgtype.Text        `json:"description"`
+	Domain      string             `json:"domain"`
+	FrameworkID pgtype.UUID        `json:"framework_id"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
 type Asset struct {
 	ID              pgtype.UUID        `json:"id"`
 	OrgID           pgtype.UUID        `json:"org_id"`
@@ -107,6 +139,19 @@ type RiskAssessment struct {
 	RulesetVersion string             `json:"ruleset_version"`
 	ComputedAt     pgtype.Timestamptz `json:"computed_at"`
 	ComputedBy     string             `json:"computed_by"`
+}
+
+type TemplateQuestion struct {
+	ID         pgtype.UUID `json:"id"`
+	TemplateID pgtype.UUID `json:"template_id"`
+	OrderIndex int32       `json:"order_index"`
+	Prompt     string      `json:"prompt"`
+	HelpText   pgtype.Text `json:"help_text"`
+	AnswerType string      `json:"answer_type"`
+	Options    []byte      `json:"options"`
+	ControlID  pgtype.UUID `json:"control_id"`
+	Weight     int32       `json:"weight"`
+	Required   bool        `json:"required"`
 }
 
 type User struct {
