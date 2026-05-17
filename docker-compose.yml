@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: assuro_dev_pass
       POSTGRES_DB: assuro
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,15 +24,29 @@ services:
     container_name: assuro-app
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8081:8080"
     environment:
       ASSURO_DATABASE_URL: postgresql://assuro:assuro_dev_pass@postgres:5432/assuro?sslmode=disable
       ASSURO_JWT_SECRET: dev-secret-change-me-in-production
       ASSURO_ENVIRONMENT: dev
       ASSURO_LOG_LEVEL: debug
+      ASSURO_HTTP_PORT: 8080
     depends_on:
       postgres:
         condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: assuro-web
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8081
+    depends_on:
+      - app
 
 volumes:
   postgres_data:
