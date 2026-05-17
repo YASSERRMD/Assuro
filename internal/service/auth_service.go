@@ -111,6 +111,27 @@ type LoginInput struct {
 	Password string
 }
 
+// Refresh verifies a refresh token and issues a new token pair.
+func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*auth.TokenPair, error) {
+	claims, err := auth.VerifyToken(refreshToken, s.cfg.JWTSecret)
+	if err != nil {
+		return nil, fmt.Errorf("invalid refresh token: %w", err)
+	}
+
+	accessTTL, _ := time.ParseDuration(s.cfg.JWTAccessTTL)
+	refreshTTL, _ := time.ParseDuration(s.cfg.JWTRefreshTTL)
+
+	tokens, err := auth.GenerateTokens(
+		claims.UserID, claims.OrgID, claims.Role,
+		s.cfg.JWTSecret, accessTTL, refreshTTL,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("generate tokens: %w", err)
+	}
+
+	return tokens, nil
+}
+
 // Login verifies credentials and issues token pair.
 func (s *AuthService) Login(ctx context.Context, in LoginInput) (*auth.TokenPair, error) {
 	user, err := s.queries.GetUserByEmail(ctx, in.Email)
