@@ -60,7 +60,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	r.Get("/healthz", s.healthz)
 	r.Get("/readyz", s.readyz)
 
-	authSvc := service.NewAuthService(db, &service.AuthConfig{
+	authSvc := service.NewAuthService(s.db, &service.AuthConfig{
 		JWTSecret:     s.jwtSecret,
 		JWTAccessTTL:  "15m",
 		JWTRefreshTTL: "720h",
