@@ -10,14 +10,14 @@ RUN go mod download
 
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /assuro ./cmd/assuro
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /goose github.com/pressly/goose/v3/cmd/goose@latest
+RUN GOBIN=/usr/local/bin CGO_ENABLED=0 GOOS=linux go install github.com/pressly/goose/v3/cmd/goose@v3.24.1
 
 FROM alpine:3.20
 
 RUN apk add --no-cache ca-certificates
 
 COPY --from=builder /assuro /usr/local/bin/assuro
-COPY --from=builder /goose /usr/local/bin/goose
+COPY --from=builder /usr/local/bin/goose /usr/local/bin/goose
 COPY migrations/ /migrations/
 
 COPY docker-entrypoint.sh /usr/local/bin/
