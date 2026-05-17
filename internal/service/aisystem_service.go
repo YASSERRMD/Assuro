@@ -179,6 +179,7 @@ func (s *AISystemService) ListAISystems(ctx context.Context, in ListAISystemsInp
 				IsAgentic:         r.IsAgentic.Bool,
 				AutonomyLevel:     r.AutonomyLevel.Int32,
 				LifecycleStage:    r.LifecycleStage.String,
+				LatestRiskTier:    r.LatestRiskTier,
 			},
 		}
 	}
@@ -293,5 +294,6 @@ func toDomainDetails(d qgen.AiSystemDetail) domain.AISystemDetails {
 		IsAgentic:           d.IsAgentic.Bool,
 		AutonomyLevel:       d.AutonomyLevel.Int32,
 		LifecycleStage:      d.LifecycleStage.String,
+		LatestRiskTier:      "unknown",
 	}
 }

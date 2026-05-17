@@ -42,8 +42,8 @@ export default function AISystemsPage() {
               <tr key={s.id} className="border-b border-gray-100">
                 <td className="py-2"><a href={`/ai-systems/${s.id}`} className="text-navy underline">{s.name}</a></td>
                 <td className="py-2 text-sm">{s.provider || '-'}</td>
-                <td className="py-2"><RiskBadge tier={s.lifecycle_status} /></td>
-                <td className="py-2 text-sm">{s.lifecycle_status}</td>
+                <td className="py-2"><RiskBadge tier={s.latest_risk_tier} /></td>
+                <td className="py-2 text-sm capitalize">{s.lifecycle_status}</td>
               </tr>
             ))}
           </tbody>

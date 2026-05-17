@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/YASSERRMD/Assuro/internal/auth"
+	"github.com/YASSERRMD/Assuro/internal/domain"
 	"github.com/YASSERRMD/Assuro/internal/service"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -15,6 +16,44 @@ import (
 type AISystemHandler struct {
 	svc    *service.AISystemService
 	logger *zap.Logger
+}
+
+type aiSystemResponse struct {
+	ID                string `json:"id"`
+	Name              string `json:"name"`
+	AssetType         string `json:"asset_type"`
+	Description       string `json:"description"`
+	LifecycleStatus   string `json:"lifecycle_status"`
+	Provider          string `json:"provider"`
+	ModelFamily       string `json:"model_family"`
+	Modality          string `json:"modality"`
+	DeploymentContext string `json:"deployment_context"`
+	IntendedPurpose   string `json:"intended_purpose"`
+	EUMarketExposure  bool   `json:"eu_market_exposure"`
+	IsAgentic         bool   `json:"is_agentic"`
+	AutonomyLevel     int32  `json:"autonomy_level"`
+	LifecycleStage    string `json:"lifecycle_stage"`
+	LatestRiskTier    string `json:"latest_risk_tier"`
+}
+
+func toAISystemResponse(s domain.AISystem) aiSystemResponse {
+	return aiSystemResponse{
+		ID:                s.Asset.ID,
+		Name:              s.Asset.Name,
+		AssetType:         string(s.Asset.AssetType),
+		Description:       s.Asset.Description,
+		LifecycleStatus:   string(s.Asset.LifecycleStatus),
+		Provider:          s.Details.Provider,
+		ModelFamily:       s.Details.ModelFamily,
+		Modality:          s.Details.Modality,
+		DeploymentContext: s.Details.DeploymentContext,
+		IntendedPurpose:   s.Details.IntendedPurpose,
+		EUMarketExposure:  s.Details.EUMarketExposure,
+		IsAgentic:         s.Details.IsAgentic,
+		AutonomyLevel:     s.Details.AutonomyLevel,
+		LifecycleStage:    s.Details.LifecycleStage,
+		LatestRiskTier:    s.Details.LatestRiskTier,
+	}
 }
 
 // NewAISystemHandler creates a new AI system handler.
@@ -81,7 +120,7 @@ func (h *AISystemHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, aiSys)
+	writeJSON(w, http.StatusCreated, toAISystemResponse(*aiSys))
 }
 
 // GetOne handles GET /v1/ai-systems/{id}.
@@ -104,7 +143,7 @@ func (h *AISystemHandler) GetOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, aiSys)
+	writeJSON(w, http.StatusOK, toAISystemResponse(*aiSys))
 }
 
 // List handles GET /v1/ai-systems.
@@ -133,7 +172,11 @@ func (h *AISystemHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, systems)
+	resp := make([]aiSystemResponse, len(systems))
+	for i, s := range systems {
+		resp[i] = toAISystemResponse(s)
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // Import handles POST /v1/ai-systems/import.
@@ -185,5 +228,9 @@ func (h *AISystemHandler) Import(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, results)
+	importResp := make([]aiSystemResponse, len(results))
+	for i, s := range results {
+		importResp[i] = toAISystemResponse(s)
+	}
+	writeJSON(w, http.StatusCreated, importResp)
 }
