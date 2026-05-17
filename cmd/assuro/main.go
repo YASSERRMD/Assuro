@@ -50,7 +50,7 @@ func main() {
 
 	srv := api.NewServer(":"+cfg.HTTPPort, logger,
 		api.WithDB(db),
-		api.WithJWTSecret(cfg.JWTSecret),
+		api.WithConfig(cfg),
 	)
 
 	if err := srv.Start(); err != nil {
