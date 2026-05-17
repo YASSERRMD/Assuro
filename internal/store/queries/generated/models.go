@@ -106,6 +106,25 @@ type ControlRequirementMap struct {
 	RequirementID pgtype.UUID `json:"requirement_id"`
 }
 
+type Evidence struct {
+	ID          pgtype.UUID        `json:"id"`
+	OrgID       pgtype.UUID        `json:"org_id"`
+	Title       string             `json:"title"`
+	Description pgtype.Text        `json:"description"`
+	FileKey     string             `json:"file_key"`
+	ContentHash string             `json:"content_hash"`
+	MimeType    pgtype.Text        `json:"mime_type"`
+	SizeBytes   int64              `json:"size_bytes"`
+	UploadedBy  pgtype.UUID        `json:"uploaded_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type EvidenceLink struct {
+	EvidenceID pgtype.UUID `json:"evidence_id"`
+	TargetType string      `json:"target_type"`
+	TargetID   pgtype.UUID `json:"target_id"`
+}
+
 type Framework struct {
 	ID        pgtype.UUID        `json:"id"`
 	Key       string             `json:"key"`
