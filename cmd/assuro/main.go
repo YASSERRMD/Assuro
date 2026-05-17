@@ -41,6 +41,13 @@ func main() {
 	}
 	defer db.Close()
 
+	if cfg.Environment == "dev" {
+		logger.Info("seeding demo data")
+		if err := store.SeedAll(ctx, db); err != nil {
+			logger.Error("seed failed", zap.Error(err))
+		}
+	}
+
 	srv := api.NewServer(":"+cfg.HTTPPort, logger, api.WithDB(db))
 
 	if err := srv.Start(); err != nil {

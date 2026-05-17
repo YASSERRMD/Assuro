@@ -17,20 +17,22 @@ services:
       timeout: 5s
       retries: 5
 
-  # app:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: assuro-app
-  #   restart: unless-stopped
-  #   ports:
-  #     - "8080:8080"
-  #   environment:
-  #     ASSURO_DATABASE_URL: postgresql://assuro:assuro_dev_pass@postgres:5432/assuro?sslmode=disable
-  #     ASSURO_LOG_LEVEL: debug
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: assuro-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ASSURO_DATABASE_URL: postgresql://assuro:assuro_dev_pass@postgres:5432/assuro?sslmode=disable
+      ASSURO_JWT_SECRET: dev-secret-change-me-in-production
+      ASSURO_ENVIRONMENT: dev
+      ASSURO_LOG_LEVEL: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

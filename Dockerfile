@@ -15,7 +15,11 @@ FROM alpine:3.20
 RUN apk add --no-cache ca-certificates
 
 COPY --from=builder /assuro /usr/local/bin/assuro
+COPY migrations/ /migrations/
+
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 8080
 
-ENTRYPOINT ["assuro"]
+ENTRYPOINT ["docker-entrypoint.sh"]
