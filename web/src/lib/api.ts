@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081'
 
 // typedFetch is a typed wrapper around fetch with token handling.
 export async function typedFetch<T>(path: string, init?: RequestInit): Promise<T> {
