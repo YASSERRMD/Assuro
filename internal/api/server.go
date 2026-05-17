@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/YASSERRMD/Assuro/internal/service"
 	"github.com/YASSERRMD/Assuro/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,10 +19,11 @@ const version = "v0.1.0"
 
 // Server holds the HTTP server and its dependencies.
 type Server struct {
-	logger  *zap.Logger
-	server  *http.Server
-	started time.Time
-	db      *store.DB
+	logger    *zap.Logger
+	server    *http.Server
+	started   time.Time
+	db        *store.DB
+	jwtSecret string
 }
 
 // ServerOption configures the server.
@@ -30,6 +32,11 @@ type ServerOption func(*Server)
 // WithDB sets the database connection for readiness checks.
 func WithDB(db *store.DB) ServerOption {
 	return func(s *Server) { s.db = db }
+}
+
+// WithJWTSecret sets the JWT secret for authentication.
+func WithJWTSecret(secret string) ServerOption {
+	return func(s *Server) { s.jwtSecret = secret }
 }
 
 // NewServer creates and configures the HTTP server.
@@ -52,6 +59,16 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 
 	r.Get("/healthz", s.healthz)
 	r.Get("/readyz", s.readyz)
+
+	authSvc := service.NewAuthService(db, &service.AuthConfig{
+		JWTSecret:     s.jwtSecret,
+		JWTAccessTTL:  "15m",
+		JWTRefreshTTL: "720h",
+	})
+	authHandler := NewAuthHandler(authSvc, logger)
+
+	r.Post("/v1/auth/signup", authHandler.SignUp)
+	r.Post("/v1/auth/login", authHandler.Login)
 
 	s.server = &http.Server{
 		Addr:    addr,
