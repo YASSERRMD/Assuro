@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: assuro-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${ASSURO_DB_USER:-assuro}
+      POSTGRES_PASSWORD: ${ASSURO_DB_PASSWORD:-assuro_prod_pass}
+      POSTGRES_DB: ${ASSURO_DB_NAME:-assuro}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ASSURO_DB_USER:-assuro}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: assuro-app
+    restart: unless-stopped
+    ports:
+      - "${ASSURO_HTTP_PORT:-8080}:8080"
+    environment:
+      ASSURO_DATABASE_URL: postgresql://${ASSURO_DB_USER:-assuro}:${ASSURO_DB_PASSWORD:-assuro_prod_pass}@postgres:5432/${ASSURO_DB_NAME:-assuro}?sslmode=disable
+      ASSURO_JWT_SECRET: ${ASSURO_JWT_SECRET}
+      ASSURO_ENVIRONMENT: ${ASSURO_ENVIRONMENT:-prod}
+      ASSURO_LOG_LEVEL: ${ASSURO_LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: assuro-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
