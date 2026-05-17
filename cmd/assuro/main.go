@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"github.com/YASSERRMD/Assuro/internal/api"
 	"github.com/YASSERRMD/Assuro/internal/config"
 	"github.com/YASSERRMD/Assuro/internal/observability"
+	"github.com/YASSERRMD/Assuro/internal/store"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +33,15 @@ func main() {
 		zap.String("env", cfg.Environment),
 	)
 
-	srv := api.NewServer(":"+cfg.HTTPPort, logger)
+	ctx := context.Background()
+
+	db, err := store.NewDB(ctx, cfg.DatabaseURL)
+	if err != nil {
+		logger.Fatal("database connection failed", zap.Error(err))
+	}
+	defer db.Close()
+
+	srv := api.NewServer(":"+cfg.HTTPPort, logger, api.WithDB(db))
 
 	if err := srv.Start(); err != nil {
 		logger.Fatal("server error", zap.Error(err))

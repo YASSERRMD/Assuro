@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/YASSERRMD/Assuro/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
@@ -20,10 +21,27 @@ type Server struct {
 	logger  *zap.Logger
 	server  *http.Server
 	started time.Time
+	db      *store.DB
+}
+
+// ServerOption configures the server.
+type ServerOption func(*Server)
+
+// WithDB sets the database connection for readiness checks.
+func WithDB(db *store.DB) ServerOption {
+	return func(s *Server) { s.db = db }
 }
 
 // NewServer creates and configures the HTTP server.
-func NewServer(addr string, logger *zap.Logger) *Server {
+func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
+	s := &Server{
+		logger:  logger,
+		started: time.Now().UTC(),
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -31,11 +49,6 @@ func NewServer(addr string, logger *zap.Logger) *Server {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(30 * time.Second))
 	r.Use(requestLogger(logger))
-
-	s := &Server{
-		logger:  logger,
-		started: time.Now().UTC(),
-	}
 
 	r.Get("/healthz", s.healthz)
 	r.Get("/readyz", s.readyz)
