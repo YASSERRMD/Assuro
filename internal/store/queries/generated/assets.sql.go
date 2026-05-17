@@ -140,27 +140,27 @@ const listAssets = `-- name: ListAssets :many
 SELECT id, org_id, asset_type, name, description, owner_user_id, metadata, lifecycle_status, created_at, updated_at
 FROM assets
 WHERE org_id = $1
-  AND ($2::text IS NULL OR asset_type = $2)
-  AND ($3::text IS NULL OR lifecycle_status = $3)
+  AND ($2::text IS NULL OR asset_type = $2::text)
+  AND ($3::text IS NULL OR lifecycle_status = $3::text)
 ORDER BY created_at DESC
-LIMIT $4 OFFSET $5
+LIMIT $5 OFFSET $4
 `
 
 type ListAssetsParams struct {
-	OrgID   pgtype.UUID `json:"org_id"`
-	Column2 string      `json:"column_2"`
-	Column3 string      `json:"column_3"`
-	Limit   int32       `json:"limit"`
-	Offset  int32       `json:"offset"`
+	OrgID           pgtype.UUID `json:"org_id"`
+	AssetType       pgtype.Text `json:"asset_type"`
+	LifecycleStatus pgtype.Text `json:"lifecycle_status"`
+	Offset          int32       `json:"offset"`
+	Limit           int32       `json:"limit"`
 }
 
 func (q *Queries) ListAssets(ctx context.Context, arg ListAssetsParams) ([]Asset, error) {
 	rows, err := q.db.Query(ctx, listAssets,
 		arg.OrgID,
-		arg.Column2,
-		arg.Column3,
-		arg.Limit,
+		arg.AssetType,
+		arg.LifecycleStatus,
 		arg.Offset,
+		arg.Limit,
 	)
 	if err != nil {
 		return nil, err
