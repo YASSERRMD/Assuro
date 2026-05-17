@@ -17,10 +17,10 @@ WHERE id = $1 AND org_id = $2;
 SELECT id, org_id, asset_type, name, description, owner_user_id, metadata, lifecycle_status, created_at, updated_at
 FROM assets
 WHERE org_id = $1
-  AND ($2::text IS NULL OR asset_type = $2)
-  AND ($3::text IS NULL OR lifecycle_status = $3)
+  AND (sqlc.narg('asset_type')::text IS NULL OR asset_type = sqlc.narg('asset_type')::text)
+  AND (sqlc.narg('lifecycle_status')::text IS NULL OR lifecycle_status = sqlc.narg('lifecycle_status')::text)
 ORDER BY created_at DESC
-LIMIT $4 OFFSET $5;
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: UpdateAsset :one
 UPDATE assets
