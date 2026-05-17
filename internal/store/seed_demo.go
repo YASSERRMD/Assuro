@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/YASSERRMD/Assuro/internal/auth"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -59,11 +60,30 @@ func SeedDemoData(ctx context.Context, db *DB) error {
 	}
 
 	var exists bool
-	err = db.Pool().QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM assets WHERE org_id = $1)", orgID).Scan(&exists)
+	err = db.Pool().QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)", "admin@assuro.demo").Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("check users: %w", err)
+	}
+	if !exists {
+		hash, err := auth.HashPassword("demo1234")
+		if err != nil {
+			return fmt.Errorf("hash password: %w", err)
+		}
+		_, err = db.Pool().Exec(ctx,
+			"INSERT INTO users (org_id, email, password_hash, role) VALUES ($1, $2, $3, $4)",
+			orgID, "admin@assuro.demo", hash, "owner",
+		)
+		if err != nil {
+			return fmt.Errorf("insert demo user: %w", err)
+		}
+	}
+
+	var assetExists bool
+	err = db.Pool().QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM assets WHERE org_id = $1)", orgID).Scan(&assetExists)
 	if err != nil {
 		return fmt.Errorf("check assets: %w", err)
 	}
-	if exists {
+	if assetExists {
 		return nil
 	}
 

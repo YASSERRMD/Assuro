@@ -73,5 +73,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteError(w, http.StatusNotImplemented, "not_implemented", "login not yet implemented")
+	tokens, err := h.svc.Login(r.Context(), service.LoginInput{
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if err != nil {
+		h.logger.Error("login failed", zap.Error(err))
+		WriteError(w, http.StatusUnauthorized, "invalid_credentials", "invalid email or password")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, tokens)
 }
