@@ -8,6 +8,24 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AiSystemDetail struct {
+	ID                  pgtype.UUID        `json:"id"`
+	AssetID             pgtype.UUID        `json:"asset_id"`
+	Provider            pgtype.Text        `json:"provider"`
+	ModelFamily         pgtype.Text        `json:"model_family"`
+	Modality            pgtype.Text        `json:"modality"`
+	DeploymentContext   pgtype.Text        `json:"deployment_context"`
+	DataSources         []byte             `json:"data_sources"`
+	IntendedPurpose     pgtype.Text        `json:"intended_purpose"`
+	AffectedPopulations []byte             `json:"affected_populations"`
+	EuMarketExposure    pgtype.Bool        `json:"eu_market_exposure"`
+	IsAgentic           pgtype.Bool        `json:"is_agentic"`
+	AutonomyLevel       pgtype.Int4        `json:"autonomy_level"`
+	LifecycleStage      pgtype.Text        `json:"lifecycle_stage"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Asset struct {
 	ID              pgtype.UUID        `json:"id"`
 	OrgID           pgtype.UUID        `json:"org_id"`
