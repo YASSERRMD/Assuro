@@ -57,6 +57,17 @@ type Organization struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+type RiskAssessment struct {
+	ID             pgtype.UUID        `json:"id"`
+	AssetID        pgtype.UUID        `json:"asset_id"`
+	Tier           string             `json:"tier"`
+	Score          int32              `json:"score"`
+	Factors        []byte             `json:"factors"`
+	RulesetVersion string             `json:"ruleset_version"`
+	ComputedAt     pgtype.Timestamptz `json:"computed_at"`
+	ComputedBy     string             `json:"computed_by"`
+}
+
 type User struct {
 	ID           pgtype.UUID        `json:"id"`
 	OrgID        pgtype.UUID        `json:"org_id"`
