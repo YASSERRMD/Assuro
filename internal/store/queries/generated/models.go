@@ -39,6 +39,15 @@ type Asset struct {
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
 
+type AssetControlStatus struct {
+	AssetID       pgtype.UUID        `json:"asset_id"`
+	ControlID     pgtype.UUID        `json:"control_id"`
+	Status        string             `json:"status"`
+	Justification pgtype.Text        `json:"justification"`
+	UpdatedBy     pgtype.UUID        `json:"updated_by"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
 type AuditLog struct {
 	ID          pgtype.UUID        `json:"id"`
 	OrgID       pgtype.UUID        `json:"org_id"`
@@ -47,6 +56,38 @@ type AuditLog struct {
 	TargetType  string             `json:"target_type"`
 	TargetID    pgtype.UUID        `json:"target_id"`
 	Payload     []byte             `json:"payload"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type Control struct {
+	ID          pgtype.UUID        `json:"id"`
+	OrgID       pgtype.UUID        `json:"org_id"`
+	Key         string             `json:"key"`
+	Title       string             `json:"title"`
+	Description pgtype.Text        `json:"description"`
+	Domain      string             `json:"domain"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type ControlRequirementMap struct {
+	ControlID     pgtype.UUID `json:"control_id"`
+	RequirementID pgtype.UUID `json:"requirement_id"`
+}
+
+type Framework struct {
+	ID        pgtype.UUID        `json:"id"`
+	Key       string             `json:"key"`
+	Name      string             `json:"name"`
+	Version   string             `json:"version"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type FrameworkRequirement struct {
+	ID          pgtype.UUID        `json:"id"`
+	FrameworkID pgtype.UUID        `json:"framework_id"`
+	RefCode     string             `json:"ref_code"`
+	Title       string             `json:"title"`
+	Description pgtype.Text        `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
