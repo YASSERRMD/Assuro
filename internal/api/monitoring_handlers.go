@@ -7,6 +7,7 @@ import (
 
 	"github.com/YASSERRMD/Assuro/internal/auth"
 	"github.com/YASSERRMD/Assuro/internal/service"
+	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
@@ -68,7 +69,7 @@ func (h *MonitoringHandler) ListSignals(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	assetID := r.PathValue("id")
+	assetID := chi.URLParam(r, "id")
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	if limit <= 0 {
 		limit = 20

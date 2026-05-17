@@ -5,6 +5,7 @@ import (
 
 	"github.com/YASSERRMD/Assuro/internal/auth"
 	"github.com/YASSERRMD/Assuro/internal/service"
+	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
@@ -19,21 +20,21 @@ func NewRiskHandler(svc *service.RiskService, logger *zap.Logger) *RiskHandler {
 	return &RiskHandler{svc: svc, logger: logger}
 }
 
-// Compute handles POST /v1/assets/{id}/risk:compute.
+// Compute handles POST /v1/assets/{id}/risk/compute.
 func (h *RiskHandler) Compute(w http.ResponseWriter, r *http.Request) {
-	_, ok := auth.PrincipalFromContext(r.Context())
+	p, ok := auth.PrincipalFromContext(r.Context())
 	if !ok {
 		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
 		return
 	}
 
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	if id == "" {
 		WriteError(w, http.StatusBadRequest, "invalid_request", "asset id is required")
 		return
 	}
 
-	result, err := h.svc.ComputeRisk(r.Context(), id)
+	result, err := h.svc.ComputeRisk(r.Context(), p.OrgID, id)
 	if err != nil {
 		h.logger.Error("compute risk failed", zap.Error(err))
 		WriteError(w, http.StatusInternalServerError, "internal_error", "failed to compute risk")
@@ -51,7 +52,7 @@ func (h *RiskHandler) GetLatest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	if id == "" {
 		WriteError(w, http.StatusBadRequest, "invalid_request", "asset id is required")
 		return
@@ -74,7 +75,7 @@ func (h *RiskHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	if id == "" {
 		WriteError(w, http.StatusBadRequest, "invalid_request", "asset id is required")
 		return

@@ -5,6 +5,7 @@ import (
 
 	"github.com/YASSERRMD/Assuro/internal/auth"
 	"github.com/YASSERRMD/Assuro/internal/report"
+	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
@@ -27,7 +28,7 @@ func (h *ReportHandler) GetReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	assetID := r.PathValue("id")
+	assetID := chi.URLParam(r, "id")
 	if assetID == "" {
 		WriteError(w, http.StatusBadRequest, "invalid_request", "asset id is required")
 		return
