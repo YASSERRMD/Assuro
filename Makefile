@@ -1,4 +1,4 @@
-.PHONY: build run test lint fmt docker-up docker-down migrate-up migrate-down
+.PHONY: build run test lint fmt docker-up docker-down migrate-up migrate-down demo-seed
 
 BINARY=assuro
 CMD=./cmd/assuro
@@ -30,3 +30,6 @@ migrate-up:
 
 migrate-down:
 	goose -dir migrations down
+
+demo-seed: build
+	./$(BINARY) -seed-demo
