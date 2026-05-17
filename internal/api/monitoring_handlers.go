@@ -7,6 +7,7 @@ import (
 
 	"github.com/YASSERRMD/Assuro/internal/auth"
 	"github.com/YASSERRMD/Assuro/internal/service"
+	qgen "github.com/YASSERRMD/Assuro/internal/store/queries/generated"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
@@ -86,6 +87,37 @@ func (h *MonitoringHandler) ListSignals(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, signals)
 }
 
+type incidentResponse struct {
+	ID          string `json:"id"`
+	OrgID       string `json:"org_id"`
+	AssetID     string `json:"asset_id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Severity    string `json:"severity"`
+	Status      string `json:"status"`
+	RaisedAt    string `json:"raised_at"`
+	ClosedAt    string `json:"closed_at,omitempty"`
+}
+
+func toIncidentResponse(i qgen.Incident) incidentResponse {
+	r := incidentResponse{
+		ID:          i.ID.String(),
+		OrgID:       i.OrgID.String(),
+		AssetID:     i.AssetID.String(),
+		Title:       i.Title,
+		Description: i.Description.String,
+		Severity:    i.Severity,
+		Status:      i.Status,
+	}
+	if i.RaisedAt.Valid {
+		r.RaisedAt = i.RaisedAt.Time.Format("2006-01-02T15:04:05Z")
+	}
+	if i.ClosedAt.Valid {
+		r.ClosedAt = i.ClosedAt.Time.Format("2006-01-02T15:04:05Z")
+	}
+	return r
+}
+
 // IncidentHandler handles incident HTTP requests.
 type IncidentHandler struct {
 	svc    *service.IncidentService
@@ -132,7 +164,7 @@ func (h *IncidentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, incident)
+	writeJSON(w, http.StatusCreated, toIncidentResponse(*incident))
 }
 
 // List handles GET /v1/incidents.
@@ -156,5 +188,9 @@ func (h *IncidentHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, incidents)
+	resp := make([]incidentResponse, len(incidents))
+	for i, inc := range incidents {
+		resp[i] = toIncidentResponse(inc)
+	}
+	writeJSON(w, http.StatusOK, resp)
 }

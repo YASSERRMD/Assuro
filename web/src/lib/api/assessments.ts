@@ -2,10 +2,12 @@ import { typedFetch } from '@/lib/api'
 
 export interface Assessment {
   id: string
+  org_id: string
   asset_id: string
   template_id: string
   status: string
   created_at: string
+  completed_at?: string
 }
 
 export interface Question {
@@ -36,4 +38,12 @@ export async function saveResponse(assessmentId: string, questionId: string, ans
 
 export async function submitAssessment(assessmentId: string): Promise<void> {
   await typedFetch(`/v1/assessments/${assessmentId}/submit`, { method: 'POST' })
+}
+
+export async function getAssessment(id: string): Promise<Assessment> {
+  return typedFetch<Assessment>(`/v1/assessments/${id}`)
+}
+
+export async function getAssessmentQuestions(id: string): Promise<Question[]> {
+  return typedFetch<Question[]>(`/v1/assessments/${id}/questions`)
 }
