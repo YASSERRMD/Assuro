@@ -5,6 +5,8 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"golang.org/x/crypto/argon2"
 )
@@ -72,16 +74,40 @@ type parsedHash struct {
 }
 
 func parseHash(hash string) (*parsedHash, error) {
-	var version, memory, iterations, parallelism int
-	var salt, hashPart string
-
-	_, err := fmt.Sscanf(hash, "$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
-		&version, &memory, &iterations, &parallelism, &salt, &hashPart)
-	if err != nil {
-		return nil, fmt.Errorf("invalid hash format: %w", err)
+	parts := strings.Split(hash, "$")
+	if len(parts) != 6 {
+		return nil, fmt.Errorf("invalid hash format: expected 6 parts, got %d", len(parts))
 	}
 
-	saltBytes, err := base64.RawStdEncoding.DecodeString(salt)
+	if parts[1] != "argon2id" {
+		return nil, fmt.Errorf("unsupported algorithm: %s", parts[1])
+	}
+
+	versionStr := strings.TrimPrefix(parts[2], "v=")
+	_, err := strconv.ParseUint(versionStr, 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("parse version: %w", err)
+	}
+
+	params := strings.Split(parts[3], ",")
+	if len(params) != 3 {
+		return nil, fmt.Errorf("invalid params format")
+	}
+
+	memory, err := strconv.ParseUint(strings.TrimPrefix(params[0], "m="), 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("parse memory: %w", err)
+	}
+	iterations, err := strconv.ParseUint(strings.TrimPrefix(params[1], "t="), 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("parse iterations: %w", err)
+	}
+	parallelism, err := strconv.ParseUint(strings.TrimPrefix(params[2], "p="), 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("parse parallelism: %w", err)
+	}
+
+	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
 	if err != nil {
 		return nil, fmt.Errorf("decode salt: %w", err)
 	}
@@ -90,8 +116,8 @@ func parseHash(hash string) (*parsedHash, error) {
 		memory:      uint32(memory),
 		iterations:  uint32(iterations),
 		parallelism: uint8(parallelism),
-		salt:        saltBytes,
-		hash:        hashPart,
+		salt:        salt,
+		hash:        parts[5],
 		keyLength:   32,
 	}, nil
 }
