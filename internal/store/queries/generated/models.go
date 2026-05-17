@@ -106,6 +106,16 @@ type ControlRequirementMap struct {
 	RequirementID pgtype.UUID `json:"requirement_id"`
 }
 
+type CorrectiveAction struct {
+	ID          pgtype.UUID        `json:"id"`
+	IncidentID  pgtype.UUID        `json:"incident_id"`
+	Description string             `json:"description"`
+	OwnerUserID pgtype.UUID        `json:"owner_user_id"`
+	DueDate     pgtype.Timestamptz `json:"due_date"`
+	Status      string             `json:"status"`
+	CompletedAt pgtype.Timestamptz `json:"completed_at"`
+}
+
 type Evidence struct {
 	ID          pgtype.UUID        `json:"id"`
 	OrgID       pgtype.UUID        `json:"org_id"`
@@ -140,6 +150,30 @@ type FrameworkRequirement struct {
 	Title       string             `json:"title"`
 	Description pgtype.Text        `json:"description"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type Incident struct {
+	ID          pgtype.UUID        `json:"id"`
+	OrgID       pgtype.UUID        `json:"org_id"`
+	AssetID     pgtype.UUID        `json:"asset_id"`
+	Title       string             `json:"title"`
+	Description pgtype.Text        `json:"description"`
+	Severity    string             `json:"severity"`
+	Status      string             `json:"status"`
+	RaisedBy    pgtype.UUID        `json:"raised_by"`
+	RaisedAt    pgtype.Timestamptz `json:"raised_at"`
+	ClosedAt    pgtype.Timestamptz `json:"closed_at"`
+}
+
+type MonitoringSignal struct {
+	ID         pgtype.UUID        `json:"id"`
+	OrgID      pgtype.UUID        `json:"org_id"`
+	AssetID    pgtype.UUID        `json:"asset_id"`
+	SignalType string             `json:"signal_type"`
+	Severity   string             `json:"severity"`
+	Value      []byte             `json:"value"`
+	DetectedAt pgtype.Timestamptz `json:"detected_at"`
+	Source     pgtype.Text        `json:"source"`
 }
 
 type Organization struct {
