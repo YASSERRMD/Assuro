@@ -6,6 +6,7 @@ COPY web/package.json web/package-lock.json* ./
 RUN npm install --legacy-peer-deps || npm install --force
 
 COPY web/ .
+ENV NEXT_PUBLIC_API_URL=http://localhost:8081
 RUN npm run build
 
 FROM node:20-alpine AS runner

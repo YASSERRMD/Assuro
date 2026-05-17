@@ -2,15 +2,21 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/YASSERRMD/Assuro/internal/auth"
+	"github.com/YASSERRMD/Assuro/internal/config"
+	"github.com/YASSERRMD/Assuro/internal/report"
+	"github.com/YASSERRMD/Assuro/internal/service"
 	"github.com/YASSERRMD/Assuro/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"go.uber.org/zap"
 )
 
@@ -22,6 +28,7 @@ type Server struct {
 	server  *http.Server
 	started time.Time
 	db      *store.DB
+	cfg     *config.Config
 }
 
 // ServerOption configures the server.
@@ -32,7 +39,22 @@ func WithDB(db *store.DB) ServerOption {
 	return func(s *Server) { s.db = db }
 }
 
-// NewServer creates and configures the HTTP server.
+// WithConfig sets the full application configuration.
+func WithConfig(cfg *config.Config) ServerOption {
+	return func(s *Server) { s.cfg = cfg }
+}
+
+// WithJWTSecret sets the JWT secret (kept for backward compatibility).
+func WithJWTSecret(secret string) ServerOption {
+	return func(s *Server) {
+		if s.cfg == nil {
+			s.cfg = &config.Config{}
+		}
+		s.cfg.JWTSecret = secret
+	}
+}
+
+// NewServer creates and configures the HTTP server with all routes wired.
 func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	s := &Server{
 		logger:  logger,
@@ -42,16 +64,128 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 		opt(s)
 	}
 
-	r := chi.NewRouter()
+	if s.cfg == nil {
+		s.cfg = &config.Config{
+			JWTAccessTTL:  15 * time.Minute,
+			JWTRefreshTTL: 168 * time.Hour,
+		}
+	}
 
+	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(30 * time.Second))
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 	r.Use(requestLogger(logger))
+	r.Use(SecurityHeaders)
 
+	// Health probes - public
 	r.Get("/healthz", s.healthz)
 	r.Get("/readyz", s.readyz)
+
+	// Instantiate all services
+	authSvc := service.NewAuthService(s.db, &service.AuthConfig{
+		JWTSecret:     s.cfg.JWTSecret,
+		JWTAccessTTL:  fmt.Sprintf("%v", s.cfg.JWTAccessTTL),
+		JWTRefreshTTL: fmt.Sprintf("%v", s.cfg.JWTRefreshTTL),
+	})
+	assetSvc := service.NewAssetService(s.db)
+	aiSvc := service.NewAISystemService(s.db, assetSvc)
+	riskSvc := service.NewRiskService(s.db, aiSvc)
+	fwSvc := service.NewFrameworkService(s.db)
+	assessSvc := service.NewAssessmentService(s.db, fwSvc)
+	evidSvc := service.NewEvidenceService(s.db)
+	monSvc := service.NewMonitoringService(s.db)
+	incSvc := service.NewIncidentService(s.db)
+	reportBuilder := report.NewBuilder()
+
+	// Instantiate all handlers
+	authH := NewAuthHandler(authSvc, logger)
+	assetH := NewAssetHandler(assetSvc, logger)
+	aiSysH := NewAISystemHandler(aiSvc, logger)
+	riskH := NewRiskHandler(riskSvc, logger)
+	fwH := NewFrameworkHandler(fwSvc, logger)
+	assessH := NewAssessmentHandler(assessSvc, logger)
+	evidH := NewEvidenceHandler(evidSvc, logger)
+	monH := NewMonitoringHandler(monSvc, logger)
+	incH := NewIncidentHandler(incSvc, logger)
+	reportH := NewReportHandler(reportBuilder, logger)
+	auditH := NewAuditHandler(s.db, logger)
+
+	// Public auth routes
+	r.Post("/v1/auth/signup", authH.SignUp)
+	r.Post("/v1/auth/login", authH.Login)
+	r.Post("/v1/auth/refresh", authH.Refresh)
+
+	// All protected routes require a valid JWT
+	r.Group(func(r chi.Router) {
+		r.Use(auth.RequireAuth(s.cfg.JWTSecret))
+
+		// Generic asset CRUD
+		r.Post("/v1/assets", assetH.Create)
+		r.Get("/v1/assets", assetH.List)
+
+		r.Route("/v1/assets/{id}", func(r chi.Router) {
+			r.Get("/", assetH.GetOne)
+			r.Patch("/", assetH.Update)
+			r.Delete("/", assetH.Archive)
+
+			// Risk sub-resource
+			r.Post("/risk/compute", riskH.Compute)
+			r.Get("/risk", riskH.GetLatest)
+			r.Get("/risk/history", riskH.GetHistory)
+
+			// Framework compliance per asset
+			r.Post("/controls/status", fwH.SetControlStatus)
+			r.Get("/coverage", fwH.GetCoverage)
+			r.Get("/soa", fwH.GetSoA)
+
+			// Monitoring signals per asset
+			r.Get("/signals", monH.ListSignals)
+
+			// Audit-ready report per asset
+			r.Get("/report", reportH.GetReport)
+		})
+
+		// AI Systems (import must come before /{id} to avoid ambiguity)
+		r.Post("/v1/ai-systems/import", aiSysH.Import)
+		r.Post("/v1/ai-systems", aiSysH.Register)
+		r.Get("/v1/ai-systems", aiSysH.List)
+		r.Get("/v1/ai-systems/{id}", aiSysH.GetOne)
+
+		// Cross-framework register
+		r.Get("/v1/frameworks", fwH.ListFrameworks)
+		r.Get("/v1/controls", fwH.ListControls)
+
+		// Assessments
+		r.Post("/v1/assessments", assessH.Create)
+		r.Get("/v1/assessments", assessH.List)
+		r.Get("/v1/assessments/{id}", assessH.GetOne)
+		r.Post("/v1/assessments/{id}/responses", assessH.SaveResponse)
+		r.Post("/v1/assessments/{id}/submit", assessH.Submit)
+
+		// Evidence store
+		r.Post("/v1/evidence", evidH.Upload)
+		r.Get("/v1/evidence", evidH.List)
+
+		// Monitoring signal ingest
+		r.Post("/v1/monitoring/signals", monH.RecordSignal)
+
+		// Incidents and CAPA
+		r.Post("/v1/incidents", incH.Create)
+		r.Get("/v1/incidents", incH.List)
+
+		// Audit log (owner/admin only - enforced inside handler)
+		r.Get("/v1/audit-log", auditH.List)
+	})
 
 	s.server = &http.Server{
 		Addr:    addr,
@@ -61,7 +195,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	return s
 }
 
-// Start launches the server and blocks until shutdown.
+// Start launches the server and blocks until graceful shutdown.
 func (s *Server) Start() error {
 	s.logger.Info("starting http server", zap.String("addr", s.server.Addr))
 

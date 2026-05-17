@@ -32,8 +32,8 @@ func NewRiskService(db *store.DB, aiSvc *AISystemService) *RiskService {
 }
 
 // ComputeRisk runs the risk engine for an asset and persists the result.
-func (s *RiskService) ComputeRisk(ctx context.Context, assetID string) (*domain.RiskAssessment, error) {
-	asset, err := s.aiSvc.GetAISystem(ctx, "", assetID)
+func (s *RiskService) ComputeRisk(ctx context.Context, orgID, assetID string) (*domain.RiskAssessment, error) {
+	asset, err := s.aiSvc.GetAISystem(ctx, orgID, assetID)
 	if err != nil {
 		return nil, fmt.Errorf("get asset: %w", err)
 	}

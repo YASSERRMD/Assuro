@@ -7,6 +7,7 @@ import (
 
 	"github.com/YASSERRMD/Assuro/internal/auth"
 	"github.com/YASSERRMD/Assuro/internal/service"
+	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
@@ -74,7 +75,7 @@ func (h *AssessmentHandler) SaveResponse(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	assessmentID := r.PathValue("id")
+	assessmentID := chi.URLParam(r, "id")
 	if assessmentID == "" {
 		WriteError(w, http.StatusBadRequest, "invalid_request", "assessment id is required")
 		return
@@ -112,7 +113,7 @@ func (h *AssessmentHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	assessmentID := r.PathValue("id")
+	assessmentID := chi.URLParam(r, "id")
 	if assessmentID == "" {
 		WriteError(w, http.StatusBadRequest, "invalid_request", "assessment id is required")
 		return
@@ -149,4 +150,27 @@ func (h *AssessmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, assessments)
+}
+
+// GetOne handles GET /v1/assessments/{id}.
+func (h *AssessmentHandler) GetOne(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		WriteError(w, http.StatusBadRequest, "invalid_request", "assessment id is required")
+		return
+	}
+
+	assessment, err := h.svc.GetAssessment(r.Context(), p.OrgID, id)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "not_found", "assessment not found")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, assessment)
 }

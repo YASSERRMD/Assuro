@@ -73,5 +73,42 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteError(w, http.StatusNotImplemented, "not_implemented", "login not yet implemented")
+	tokens, err := h.svc.Login(r.Context(), service.LoginInput{
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if err != nil {
+		h.logger.Error("login failed", zap.Error(err))
+		WriteError(w, http.StatusUnauthorized, "invalid_credentials", "invalid email or password")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, tokens)
+}
+
+type refreshRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+// Refresh handles POST /v1/auth/refresh.
+func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+	var req refreshRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid_request", "invalid JSON body")
+		return
+	}
+
+	if req.RefreshToken == "" {
+		WriteError(w, http.StatusBadRequest, "invalid_request", "refresh_token is required")
+		return
+	}
+
+	tokens, err := h.svc.Refresh(r.Context(), req.RefreshToken)
+	if err != nil {
+		h.logger.Error("refresh failed", zap.Error(err))
+		WriteError(w, http.StatusUnauthorized, "invalid_token", "invalid or expired refresh token")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, tokens)
 }
