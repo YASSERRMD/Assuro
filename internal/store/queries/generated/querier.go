@@ -12,21 +12,25 @@ import (
 
 type Querier interface {
 	ArchiveAsset(ctx context.Context, arg ArchiveAssetParams) (Asset, error)
+	CreateAISystemDetails(ctx context.Context, arg CreateAISystemDetailsParams) (AiSystemDetail, error)
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset, error)
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuditLog, error)
 	CreateOrganization(ctx context.Context, arg CreateOrganizationParams) (Organization, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	GetAISystemDetailsByAssetID(ctx context.Context, assetID pgtype.UUID) (AiSystemDetail, error)
 	GetAssetByID(ctx context.Context, id pgtype.UUID) (Asset, error)
 	GetAssetByIDAndOrg(ctx context.Context, arg GetAssetByIDAndOrgParams) (Asset, error)
 	GetOrganizationByID(ctx context.Context, id pgtype.UUID) (Organization, error)
 	GetOrganizationBySlug(ctx context.Context, slug string) (Organization, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
+	ListAISystems(ctx context.Context, arg ListAISystemsParams) ([]ListAISystemsRow, error)
 	ListAssets(ctx context.Context, arg ListAssetsParams) ([]Asset, error)
 	ListAuditLogsByOrg(ctx context.Context, arg ListAuditLogsByOrgParams) ([]AuditLog, error)
 	ListAuditLogsByTarget(ctx context.Context, arg ListAuditLogsByTargetParams) ([]AuditLog, error)
 	ListOrganizations(ctx context.Context) ([]Organization, error)
 	ListUsersByOrg(ctx context.Context, orgID pgtype.UUID) ([]User, error)
+	UpdateAISystemDetails(ctx context.Context, arg UpdateAISystemDetailsParams) (AiSystemDetail, error)
 	UpdateAsset(ctx context.Context, arg UpdateAssetParams) (Asset, error)
 }
 
