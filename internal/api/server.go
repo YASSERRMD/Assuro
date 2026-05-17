@@ -117,6 +117,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	evidH := NewEvidenceHandler(evidSvc, logger)
 	monH := NewMonitoringHandler(monSvc, logger)
 	incH := NewIncidentHandler(incSvc, logger)
+	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
 
@@ -182,6 +183,9 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 		// Incidents and CAPA
 		r.Post("/v1/incidents", incH.Create)
 		r.Get("/v1/incidents", incH.List)
+
+		// Dashboard statistics
+		r.Get("/v1/stats", statsH.Get)
 
 		// Audit log (owner/admin only - enforced inside handler)
 		r.Get("/v1/audit-log", auditH.List)
