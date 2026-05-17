@@ -7,6 +7,7 @@ import (
 
 	"github.com/YASSERRMD/Assuro/internal/auth"
 	"github.com/YASSERRMD/Assuro/internal/service"
+	qgen "github.com/YASSERRMD/Assuro/internal/store/queries/generated"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
@@ -15,6 +16,33 @@ import (
 type AssessmentHandler struct {
 	svc    *service.AssessmentService
 	logger *zap.Logger
+}
+
+type assessmentResponse struct {
+	ID          string `json:"id"`
+	OrgID       string `json:"org_id"`
+	AssetID     string `json:"asset_id"`
+	TemplateID  string `json:"template_id"`
+	Status      string `json:"status"`
+	CreatedAt   string `json:"created_at"`
+	CompletedAt string `json:"completed_at,omitempty"`
+}
+
+func toAssessmentResponse(a qgen.Assessment) assessmentResponse {
+	r := assessmentResponse{
+		ID:         a.ID.String(),
+		OrgID:      a.OrgID.String(),
+		AssetID:    a.AssetID.String(),
+		TemplateID: a.TemplateID.String(),
+		Status:     a.Status,
+	}
+	if a.CreatedAt.Valid {
+		r.CreatedAt = a.CreatedAt.Time.Format("2006-01-02T15:04:05Z")
+	}
+	if a.CompletedAt.Valid {
+		r.CompletedAt = a.CompletedAt.Time.Format("2006-01-02T15:04:05Z")
+	}
+	return r
 }
 
 // NewAssessmentHandler creates a new assessment handler.
@@ -58,7 +86,7 @@ func (h *AssessmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, assessment)
+	writeJSON(w, http.StatusCreated, toAssessmentResponse(*assessment))
 }
 
 type saveResponseRequest struct {
@@ -149,7 +177,11 @@ func (h *AssessmentHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, assessments)
+	resp := make([]assessmentResponse, len(assessments))
+	for i, a := range assessments {
+		resp[i] = toAssessmentResponse(a)
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // GetOne handles GET /v1/assessments/{id}.
@@ -172,5 +204,53 @@ func (h *AssessmentHandler) GetOne(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, assessment)
+	writeJSON(w, http.StatusOK, toAssessmentResponse(*assessment))
+}
+
+type questionResponse struct {
+	ID         string `json:"id"`
+	Prompt     string `json:"prompt"`
+	HelpText   string `json:"help_text"`
+	AnswerType string `json:"answer_type"`
+	Required   bool   `json:"required"`
+}
+
+// GetQuestions handles GET /v1/assessments/{id}/questions.
+func (h *AssessmentHandler) GetQuestions(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		WriteError(w, http.StatusBadRequest, "invalid_request", "assessment id is required")
+		return
+	}
+
+	assessment, err := h.svc.GetAssessment(r.Context(), p.OrgID, id)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "not_found", "assessment not found")
+		return
+	}
+
+	questions, err := h.svc.GetQuestionsByTemplate(r.Context(), assessment.TemplateID.String())
+	if err != nil {
+		h.logger.Error("get questions failed", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "internal_error", "failed to get questions")
+		return
+	}
+
+	resp := make([]questionResponse, len(questions))
+	for i, q := range questions {
+		resp[i] = questionResponse{
+			ID:         q.ID.String(),
+			Prompt:     q.Prompt,
+			HelpText:   q.HelpText.String,
+			AnswerType: q.AnswerType,
+			Required:   q.Required,
+		}
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
