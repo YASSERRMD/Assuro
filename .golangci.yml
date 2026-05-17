@@ -1,0 +1,33 @@
+run:
+  issues: false
+  concurrency: 4
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - gofmt
+    - revive
+    - gosimple
+    - ineffassign
+    - unused
+
+linters-settings:
+  govet:
+    check-shadowing: true
+  errcheck:
+    check-type-assertions: true
+    check-blank: false
+  revive:
+    rules:
+      - name: var-naming
+        severity: warning
+      - name: errorf
+        severity: warning
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
