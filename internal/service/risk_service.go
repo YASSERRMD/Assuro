@@ -45,16 +45,23 @@ func (s *RiskService) ComputeRisk(ctx context.Context, orgID, assetID string) (*
 	aID := parseUUID(assetID)
 
 	result, err := s.queries.CreateRiskAssessment(ctx, qgen.CreateRiskAssessmentParams{
-		AssetID:      aID,
-		Tier:         string(tier),
-		Score:        int32(score),
-		Factors:      factorBytes,
+		AssetID:        aID,
+		Tier:           string(tier),
+		Score:          int32(score),
+		Factors:        factorBytes,
 		RulesetVersion: version,
-		ComputedBy:   "system",
+		ComputedBy:     "system",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("persist risk: %w", err)
 	}
+
+	// Update the denormalised risk tier on ai_system_details for fast list queries.
+	s.db.Pool().Exec(ctx,
+		`UPDATE ai_system_details SET latest_risk_tier = $1, latest_risk_score = $2
+		 WHERE asset_id = $3`,
+		string(tier), int32(score), aID,
+	)
 
 	return toDomainRiskAssessment(result), nil
 }
