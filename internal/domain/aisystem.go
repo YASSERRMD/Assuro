@@ -13,6 +13,7 @@ type AISystemDetails struct {
 	IsAgentic           bool
 	AutonomyLevel       int32
 	LifecycleStage      string
+	LatestRiskTier      string
 }
 
 // AISystem is an asset of type ai_system with additional details.

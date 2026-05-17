@@ -4,12 +4,18 @@ export interface AISystem {
   id: string
   name: string
   asset_type: string
+  description: string
   provider: string
+  model_family: string
   modality: string
+  deployment_context: string
   intended_purpose: string
   eu_market_exposure: boolean
   is_agentic: boolean
+  autonomy_level: number
   lifecycle_status: string
+  lifecycle_stage: string
+  latest_risk_tier: string
 }
 
 export interface RiskAssessment {
@@ -36,7 +42,7 @@ export async function registerAISystem(data: Partial<AISystem>): Promise<AISyste
 }
 
 export async function computeRisk(id: string): Promise<RiskAssessment> {
-  return typedFetch<RiskAssessment>(`/v1/assets/${id}/risk:compute`, { method: 'POST' })
+  return typedFetch<RiskAssessment>(`/v1/assets/${id}/risk/compute`, { method: 'POST' })
 }
 
 export async function getRisk(id: string): Promise<RiskAssessment | null> {

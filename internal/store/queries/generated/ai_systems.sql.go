@@ -99,7 +99,8 @@ func (q *Queries) GetAISystemDetailsByAssetID(ctx context.Context, assetID pgtyp
 
 const listAISystems = `-- name: ListAISystems :many
 SELECT a.id, a.org_id, a.asset_type, a.name, a.description, a.owner_user_id, a.metadata, a.lifecycle_status, a.created_at, a.updated_at,
-       d.provider, d.model_family, d.modality, d.deployment_context, d.data_sources, d.intended_purpose, d.affected_populations, d.eu_market_exposure, d.is_agentic, d.autonomy_level, d.lifecycle_stage
+       d.provider, d.model_family, d.modality, d.deployment_context, d.data_sources, d.intended_purpose, d.affected_populations, d.eu_market_exposure, d.is_agentic, d.autonomy_level, d.lifecycle_stage,
+       COALESCE(d.latest_risk_tier, 'unknown') AS latest_risk_tier
 FROM assets a
 JOIN ai_system_details d ON d.asset_id = a.id
 WHERE a.org_id = $1
@@ -137,6 +138,7 @@ type ListAISystemsRow struct {
 	IsAgentic           pgtype.Bool        `json:"is_agentic"`
 	AutonomyLevel       pgtype.Int4        `json:"autonomy_level"`
 	LifecycleStage      pgtype.Text        `json:"lifecycle_stage"`
+	LatestRiskTier      string             `json:"latest_risk_tier"`
 }
 
 func (q *Queries) ListAISystems(ctx context.Context, arg ListAISystemsParams) ([]ListAISystemsRow, error) {
@@ -175,6 +177,7 @@ func (q *Queries) ListAISystems(ctx context.Context, arg ListAISystemsParams) ([
 			&i.IsAgentic,
 			&i.AutonomyLevel,
 			&i.LifecycleStage,
+			&i.LatestRiskTier,
 		); err != nil {
 			return nil, err
 		}
