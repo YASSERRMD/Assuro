@@ -6,6 +6,17 @@ import { useToast } from '@/components/ui/Toast'
 import { listModelCards, createModelCard, publishModelCard, type ModelCard } from '@/lib/api/modelcards'
 import { BookMarked, Plus, X, Send, Eye } from 'lucide-react'
 
+function toText(val: unknown): string {
+  if (!val) return ''
+  if (typeof val === 'string') return val
+  if (typeof val === 'object') {
+    return Object.values(val as Record<string, unknown>)
+      .filter((v) => typeof v === 'string')
+      .join(' · ')
+  }
+  return String(val)
+}
+
 const riskBadge: Record<string, string> = {
   high: 'bg-red-100 text-red-700',
   medium: 'bg-amber-100 text-amber-700',
@@ -209,8 +220,8 @@ export default function ModelCardsPage() {
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${card.published ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                     {card.published ? 'Published' : 'Draft'}
                   </span>
-                  {card.status && (
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${riskBadge[card.status] ?? 'bg-gray-100 text-gray-500'} capitalize`}>
+                  {card.status && riskBadge[card.status] && (
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${riskBadge[card.status]} capitalize`}>
                       {card.status}
                     </span>
                   )}
@@ -221,10 +232,10 @@ export default function ModelCardsPage() {
                 <p className="text-xs text-gray-500 line-clamp-2">{card.description}</p>
               )}
 
-              {card.intended_use && (
+              {toText(card.intended_use) && (
                 <div className="rounded-lg bg-gray-50 px-3 py-2">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-0.5">Intended Use</p>
-                  <p className="text-xs text-gray-600 line-clamp-2">{card.intended_use}</p>
+                  <p className="text-xs text-gray-600 line-clamp-2">{toText(card.intended_use)}</p>
                 </div>
               )}
 
