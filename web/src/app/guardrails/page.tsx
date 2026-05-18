@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Shell } from '@/components/shell/Shell'
 import { useToast } from '@/components/ui/Toast'
 import { listGuardrails, createGuardrail, updateGuardrail, type Guardrail } from '@/lib/api/agents'
-import { Shield, Plus, X, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Shield, Plus, X, ToggleLeft, ToggleRight, Download } from 'lucide-react'
 
 const policyTypeStyle: Record<string, { badge: string; label: string; icon: string }> = {
   block: { badge: 'bg-red-100 text-red-700', label: 'Block', icon: 'bg-red-50' },
@@ -105,6 +105,33 @@ function CreateGuardrailModal({ onClose, onCreated }: {
   )
 }
 
+function exportReport(guardrails: Guardrail[]): void {
+  const report = {
+    generated_at: new Date().toISOString(),
+    total: guardrails.length,
+    enabled: guardrails.filter((g) => g.enabled).length,
+    disabled: guardrails.filter((g) => !g.enabled).length,
+    by_policy_type: Object.fromEntries(
+      ['block', 'warn', 'log'].map((t) => [t, guardrails.filter((g) => g.policy_type === t).length])
+    ),
+    guardrails: guardrails.map((g) => ({
+      id: g.id,
+      name: g.name,
+      description: g.description,
+      policy_type: g.policy_type,
+      enabled: g.enabled,
+      created_at: g.created_at,
+    })),
+  }
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `guardrails-report-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function GuardrailsPage() {
   const { toast } = useToast()
   const [guardrails, setGuardrails] = useState<Guardrail[]>([])
@@ -135,12 +162,22 @@ export default function GuardrailsPage() {
           <h1 className="page-title">Guardrails</h1>
           <p className="page-subtitle">Safety constraints and policy enforcement</p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
-        >
-          <Plus className="h-4 w-4" />New Guardrail
-        </button>
+        <div className="flex items-center gap-2">
+          {guardrails.length > 0 && (
+            <button
+              onClick={() => { exportReport(guardrails); toast('Report downloaded.', 'success') }}
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+            >
+              <Download className="h-4 w-4" />Export Report
+            </button>
+          )}
+          <button
+            onClick={() => setShowCreate(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
+          >
+            <Plus className="h-4 w-4" />New Guardrail
+          </button>
+        </div>
       </div>
 
       {loading && (

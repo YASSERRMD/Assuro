@@ -47,3 +47,14 @@ export async function getAssessment(id: string): Promise<Assessment> {
 export async function getAssessmentQuestions(id: string): Promise<Question[]> {
   return typedFetch<Question[]>(`/v1/assessments/${id}/questions`)
 }
+
+export interface AssessmentResponseItem {
+  question_id: string
+  answer: unknown
+  note: string
+  answered_at: string
+}
+
+export async function getAssessmentResponses(id: string): Promise<AssessmentResponseItem[]> {
+  return typedFetch<AssessmentResponseItem[]>(`/v1/assessments/${id}/responses`)
+}

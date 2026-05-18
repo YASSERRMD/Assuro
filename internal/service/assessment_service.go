@@ -212,3 +212,20 @@ func (s *AssessmentService) GetQuestionsByTemplate(ctx context.Context, template
 
 	return questions, nil
 }
+
+// GetResponses returns all saved responses for a completed assessment.
+func (s *AssessmentService) GetResponses(ctx context.Context, orgID, assessmentID string) ([]qgen.AssessmentResponse, error) {
+	oID := parseUUID(orgID)
+	aID := parseUUID(assessmentID)
+
+	if _, err := s.queries.GetAssessmentByIDAndOrg(ctx, qgen.GetAssessmentByIDAndOrgParams{ID: aID, OrgID: oID}); err != nil {
+		return nil, fmt.Errorf("assessment not found: %w", err)
+	}
+
+	responses, err := s.queries.GetResponsesByAssessment(ctx, aID)
+	if err != nil {
+		return nil, fmt.Errorf("get responses: %w", err)
+	}
+
+	return responses, nil
+}

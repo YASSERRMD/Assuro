@@ -245,6 +245,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 		r.Get("/v1/assessments", assessH.List)
 		r.Get("/v1/assessments/{id}", assessH.GetOne)
 		r.Get("/v1/assessments/{id}/questions", assessH.GetQuestions)
+		r.Get("/v1/assessments/{id}/responses", assessH.GetResponses)
 		r.Post("/v1/assessments/{id}/responses", assessH.SaveResponse)
 		r.Post("/v1/assessments/{id}/submit", assessH.Submit)
 
