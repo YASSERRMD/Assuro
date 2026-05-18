@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS model_cards (
     id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id            uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id            uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     asset_id          uuid NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
     version           text NOT NULL DEFAULT '1.0',
     status            text NOT NULL DEFAULT 'draft'

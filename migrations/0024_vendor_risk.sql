@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS vendors (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id          uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id          uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name            text NOT NULL,
     description     text,
     vendor_type     text NOT NULL DEFAULT 'ai_provider'
@@ -24,7 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_vendors_org ON vendors (org_id, risk_tier, status
 CREATE TABLE IF NOT EXISTS vendor_assessments (
     id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     vendor_id         uuid NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
-    org_id            uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id            uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     assessment_date   date NOT NULL DEFAULT CURRENT_DATE,
     risk_score        int CHECK (risk_score BETWEEN 0 AND 100),
     risk_tier         text NOT NULL DEFAULT 'unknown'

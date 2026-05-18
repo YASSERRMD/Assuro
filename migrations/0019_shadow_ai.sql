@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS shadow_ai_findings (
     id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id         uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id         uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     connector_id   uuid REFERENCES connectors(id) ON DELETE SET NULL,
     source_type    text NOT NULL,
     source_ref     text NOT NULL,

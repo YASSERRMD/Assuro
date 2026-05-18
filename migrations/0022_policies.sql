@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS policies (
     id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id       uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id       uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name         text NOT NULL,
     description  text,
     policy_type  text NOT NULL DEFAULT 'governance'
@@ -25,7 +25,7 @@ CREATE INDEX IF NOT EXISTS idx_policies_org ON policies (org_id, status);
 CREATE TABLE IF NOT EXISTS policy_attestations (
     id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     policy_id   uuid NOT NULL REFERENCES policies(id) ON DELETE CASCADE,
-    org_id      uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id      uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     user_id     uuid NOT NULL REFERENCES users(id),
     attested_at timestamp with time zone NOT NULL DEFAULT now(),
     version     text NOT NULL,

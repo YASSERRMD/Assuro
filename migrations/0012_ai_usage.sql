@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS ai_usage_log (
     id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id       uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id       uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     task         text NOT NULL,
     provider     text NOT NULL,
     model        text NOT NULL,

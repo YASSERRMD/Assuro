@@ -33,7 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_regulatory_changes_fw
 -- Impact assessments linking a change to affected AI systems
 CREATE TABLE IF NOT EXISTS regulatory_impact_assessments (
     id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id         uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id         uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     change_id      uuid NOT NULL REFERENCES regulatory_changes(id) ON DELETE CASCADE,
     asset_id       uuid REFERENCES assets(id) ON DELETE SET NULL,
     impact_level   text NOT NULL DEFAULT 'medium'

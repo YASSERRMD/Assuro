@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS tasks (
     id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id        uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id        uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     title         text NOT NULL,
     description   text,
     task_type     text NOT NULL DEFAULT 'remediation'
@@ -28,7 +28,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_resource ON tasks (org_id, resource_type, r
 CREATE TABLE IF NOT EXISTS task_comments (
     id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     task_id    uuid NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    org_id     uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id     uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     user_id    uuid NOT NULL REFERENCES users(id),
     body       text NOT NULL,
     created_at timestamp with time zone NOT NULL DEFAULT now()

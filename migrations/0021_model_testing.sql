@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS test_suites (
     id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id      uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id      uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     asset_id    uuid REFERENCES assets(id) ON DELETE SET NULL,
     name        text NOT NULL,
     description text,
@@ -20,7 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_test_suites_org ON test_suites (org_id, asset_id)
 CREATE TABLE IF NOT EXISTS test_cases (
     id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     suite_id    uuid NOT NULL REFERENCES test_suites(id) ON DELETE CASCADE,
-    org_id      uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id      uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name        text NOT NULL,
     description text,
     input       jsonb NOT NULL DEFAULT '{}',
@@ -34,7 +34,7 @@ CREATE INDEX IF NOT EXISTS idx_test_cases_suite ON test_cases (suite_id);
 CREATE TABLE IF NOT EXISTS test_runs (
     id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     suite_id     uuid NOT NULL REFERENCES test_suites(id) ON DELETE CASCADE,
-    org_id       uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id       uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     status       text NOT NULL DEFAULT 'pending'
                      CHECK (status IN ('pending','running','passed','failed','error')),
     total        int NOT NULL DEFAULT 0,
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS test_results (
     id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     run_id      uuid NOT NULL REFERENCES test_runs(id) ON DELETE CASCADE,
     case_id     uuid NOT NULL REFERENCES test_cases(id) ON DELETE CASCADE,
-    org_id      uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id      uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     outcome     text NOT NULL DEFAULT 'pending'
                     CHECK (outcome IN ('pending','pass','fail','error','skip')),
     actual      jsonb NOT NULL DEFAULT '{}',

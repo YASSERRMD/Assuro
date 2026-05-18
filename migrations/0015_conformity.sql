@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS conformity_assessments (
     id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id      uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id      uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     asset_id    uuid NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
     kind        text NOT NULL CHECK (kind IN ('eu_ai_act','fria','dpia','custom')),
     title       text NOT NULL,
@@ -22,7 +22,7 @@ CREATE INDEX IF NOT EXISTS idx_conformity_org_asset
 
 CREATE TABLE IF NOT EXISTS conformity_declarations (
     id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id            uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id            uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     asset_id          uuid NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
     assessment_id     uuid REFERENCES conformity_assessments(id),
     declaration_type  text NOT NULL DEFAULT 'eu_doc',
