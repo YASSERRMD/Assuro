@@ -35,11 +35,13 @@ export interface AgentAnomaly {
 
 export interface Guardrail {
   id: string
+  org_id: string
   name: string
   description: string
-  rule_type: string
-  config: Record<string, unknown>
+  policy_type: string
+  conditions: Record<string, unknown>
   enabled: boolean
+  created_by?: string
   created_at: string
   updated_at: string
 }
