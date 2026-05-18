@@ -114,6 +114,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	evidSvc := service.NewEvidenceService(s.db, blobStore)
 	monSvc := service.NewMonitoringService(s.db)
 	incSvc := service.NewIncidentService(s.db)
+	confSvc := service.NewConformityService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -128,6 +129,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	evidH := NewEvidenceHandler(evidSvc, logger)
 	monH := NewMonitoringHandler(monSvc, logger)
 	incH := NewIncidentHandler(incSvc, logger)
+	confH := NewConformityHandler(confSvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -224,6 +226,14 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 
 		// Monitoring signal ingest
 		r.Post("/v1/monitoring/signals", monH.RecordSignal)
+
+		// Conformity assessments and declarations
+		r.Get("/v1/conformity/assessments", confH.ListAssessments)
+		r.Post("/v1/conformity/assessments", confH.CreateAssessment)
+		r.Patch("/v1/conformity/assessments/{id}", confH.UpdateAssessment)
+		r.Post("/v1/conformity/assessments/{id}/sign", confH.SignAssessment)
+		r.Get("/v1/conformity/declarations", confH.ListDeclarations)
+		r.Post("/v1/conformity/declarations", confH.IssueDeclaration)
 
 		// Incidents and CAPA
 		r.Post("/v1/incidents", incH.Create)
