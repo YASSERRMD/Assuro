@@ -2,14 +2,13 @@ import { typedFetch } from '@/lib/api'
 
 export interface RegulatoryChange {
   id: string
-  title: string
-  description: string
-  source: string
-  jurisdiction: string
+  framework_key: string
+  ref_code: string
+  change_kind: string
+  summary: string
   effective_date?: string
-  status: string
-  created_at: string
-  updated_at: string
+  source_url?: string
+  published_at: string
 }
 
 export interface RegulatoryImpact {
@@ -26,10 +25,6 @@ export interface RegulatoryImpact {
 
 export async function listRegulatoryChanges(): Promise<RegulatoryChange[]> {
   return typedFetch<RegulatoryChange[]>('/v1/regulatory/changes')
-}
-
-export async function createRegulatoryChange(data: Partial<RegulatoryChange>): Promise<RegulatoryChange> {
-  return typedFetch<RegulatoryChange>('/v1/regulatory/changes', { method: 'POST', body: JSON.stringify(data) })
 }
 
 export async function listRegulatoryImpacts(): Promise<RegulatoryImpact[]> {
