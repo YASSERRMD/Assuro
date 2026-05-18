@@ -158,6 +158,8 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditSvc := service.NewAuditService(s.db)
 	auditH := NewAuditHandler(auditSvc, logger)
+	rbacSvc := service.NewRBACService(s.db)
+	rbacH := NewRBACHandler(rbacSvc, logger)
 
 	// AI assist provider (always available, defaults to null)
 	aiProvider, _ := aiassist.Build(aiassist.ConfigFromEnv())
@@ -380,6 +382,22 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 		r.Get("/v1/audit-log", auditH.List)
 		r.Get("/v1/audit-log/actions", auditH.Actions)
 		r.Get("/v1/audit-log/export", auditH.Export)
+
+		// RBAC: custom roles and permissions
+		r.Get("/v1/roles/permissions", rbacH.ListPermissions)
+		r.Route("/v1/roles", func(r chi.Router) {
+			r.Get("/", rbacH.ListRoles)
+			r.Post("/", rbacH.CreateRole)
+			r.Delete("/{id}", rbacH.DeleteRole)
+			r.Get("/{id}/permissions", rbacH.GetRolePermissions)
+			r.Post("/{id}/permissions", rbacH.GrantRolePermission)
+			r.Delete("/{id}/permissions/{permission}", rbacH.RevokeRolePermission)
+		})
+		r.Route("/v1/users/{id}/roles", func(r chi.Router) {
+			r.Get("/", rbacH.ListUserRoles)
+			r.Post("/", rbacH.AssignUserRole)
+			r.Delete("/{role_id}", rbacH.RemoveUserRole)
+		})
 
 		// Admin: background job management (requires DB)
 		if jobsH != nil {
