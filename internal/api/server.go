@@ -107,6 +107,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	aiSvc := service.NewAISystemService(s.db, assetSvc)
 	riskSvc := service.NewRiskService(s.db, aiSvc)
 	fwSvc := service.NewFrameworkService(s.db)
+	regSvc := service.NewRegulatoryService(s.db)
 	assessSvc := service.NewAssessmentService(s.db, fwSvc)
 	blobStore := storage.NewLocalStore("data/evidence")
 	evidSvc := service.NewEvidenceService(s.db, blobStore)
@@ -120,6 +121,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	aiSysH := NewAISystemHandler(aiSvc, logger)
 	riskH := NewRiskHandler(riskSvc, logger)
 	fwH := NewFrameworkHandler(fwSvc, logger)
+	regH := NewRegulatoryHandler(regSvc, logger)
 	assessH := NewAssessmentHandler(assessSvc, logger)
 	evidH := NewEvidenceHandler(evidSvc, logger)
 	monH := NewMonitoringHandler(monSvc, logger)
@@ -193,6 +195,10 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 		// Cross-framework register
 		r.Get("/v1/frameworks", fwH.ListFrameworks)
 		r.Get("/v1/controls", fwH.ListControls)
+
+		// Regulatory content library
+		r.Get("/v1/regulatory/requirements", regH.ListRequirements)
+		r.Get("/v1/regulatory/controls", regH.ListControls)
 
 		// Assessments
 		r.Post("/v1/assessments", assessH.Create)
