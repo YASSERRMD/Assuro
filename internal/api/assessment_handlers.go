@@ -261,6 +261,20 @@ func (h *AssessmentHandler) GetResponses(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, items)
 }
 
+// ListTemplates handles GET /v1/assessment-templates.
+func (h *AssessmentHandler) ListTemplates(w http.ResponseWriter, r *http.Request) {
+	templates, err := h.svc.ListTemplates(r.Context())
+	if err != nil {
+		h.logger.Error("list templates failed", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "internal_error", "failed to list templates")
+		return
+	}
+	if templates == nil {
+		templates = []service.TemplateInfo{}
+	}
+	writeJSON(w, http.StatusOK, templates)
+}
+
 // GetQuestions handles GET /v1/assessments/{id}/questions.
 func (h *AssessmentHandler) GetQuestions(w http.ResponseWriter, r *http.Request) {
 	p, ok := auth.PrincipalFromContext(r.Context())
