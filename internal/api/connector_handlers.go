@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/YASSERRMD/Assuro/internal/auth"
+	"github.com/YASSERRMD/Assuro/internal/connectors"
 	"github.com/YASSERRMD/Assuro/internal/service"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -12,13 +13,14 @@ import (
 
 // ConnectorHandler handles connector registry and sync endpoints.
 type ConnectorHandler struct {
-	svc    *service.ConnectorService
-	logger *zap.Logger
+	svc      *service.ConnectorService
+	registry *connectors.Registry
+	logger   *zap.Logger
 }
 
 // NewConnectorHandler creates a ConnectorHandler.
 func NewConnectorHandler(svc *service.ConnectorService, logger *zap.Logger) *ConnectorHandler {
-	return &ConnectorHandler{svc: svc, logger: logger}
+	return &ConnectorHandler{svc: svc, registry: connectors.NewRegistry(), logger: logger}
 }
 
 // ListConnectors handles GET /v1/connectors.
@@ -156,4 +158,38 @@ func (h *ConnectorHandler) ListSyncRuns(w http.ResponseWriter, r *http.Request) 
 		runs = []service.ConnectorSyncRun{}
 	}
 	writeJSON(w, http.StatusOK, runs)
+}
+
+// ScanConnector handles POST /v1/connectors/{id}/scan.
+func (h *ConnectorHandler) ScanConnector(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
+		return
+	}
+	id := chi.URLParam(r, "id")
+	// Fetch connector to get its type and config
+	items, err := h.svc.ListConnectors(r.Context(), p.OrgID, "")
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "internal_error", "failed to load connector")
+		return
+	}
+	var conn *service.Connector
+	for i := range items {
+		if items[i].ID == id {
+			conn = &items[i]
+			break
+		}
+	}
+	if conn == nil {
+		WriteError(w, http.StatusNotFound, "not_found", "connector not found")
+		return
+	}
+	result, err := h.registry.Scan(r.Context(), conn.ConnectorType, conn.Config)
+	if err != nil {
+		h.logger.Error("connector scan", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "internal_error", err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
