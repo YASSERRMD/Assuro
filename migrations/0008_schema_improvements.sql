@@ -4,6 +4,7 @@
 ALTER TABLE assets DROP CONSTRAINT IF EXISTS assets_asset_type_check;
 
 -- Add updated_at auto-update function and triggers for core mutable tables.
+-- +goose StatementBegin
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
@@ -11,6 +12,7 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+-- +goose StatementEnd
 
 CREATE OR REPLACE TRIGGER assets_set_updated_at
     BEFORE UPDATE ON assets
