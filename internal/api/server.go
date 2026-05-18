@@ -156,7 +156,8 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	analyticsH := NewAnalyticsHandler(analyticsSvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
-	auditH := NewAuditHandler(s.db, logger)
+	auditSvc := service.NewAuditService(s.db)
+	auditH := NewAuditHandler(auditSvc, logger)
 
 	// AI assist provider (always available, defaults to null)
 	aiProvider, _ := aiassist.Build(aiassist.ConfigFromEnv())
@@ -377,6 +378,8 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 
 		// Audit log (owner/admin only - enforced inside handler)
 		r.Get("/v1/audit-log", auditH.List)
+		r.Get("/v1/audit-log/actions", auditH.Actions)
+		r.Get("/v1/audit-log/export", auditH.Export)
 
 		// Admin: background job management (requires DB)
 		if jobsH != nil {
