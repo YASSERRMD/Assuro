@@ -115,6 +115,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	monSvc := service.NewMonitoringService(s.db)
 	incSvc := service.NewIncidentService(s.db)
 	confSvc := service.NewConformityService(s.db)
+	agentSvc := service.NewAgentService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -130,6 +131,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	monH := NewMonitoringHandler(monSvc, logger)
 	incH := NewIncidentHandler(incSvc, logger)
 	confH := NewConformityHandler(confSvc, logger)
+	agentH := NewAgentHandler(agentSvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -226,6 +228,17 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 
 		// Monitoring signal ingest
 		r.Post("/v1/monitoring/signals", monH.RecordSignal)
+
+		// Agent registry and permissions
+		r.Get("/v1/agents", agentH.ListAgents)
+		r.Post("/v1/agents", agentH.RegisterAgent)
+		r.Route("/v1/agents/{id}", func(r chi.Router) {
+			r.Get("/", agentH.GetAgent)
+			r.Patch("/", agentH.UpdateAgentStatus)
+			r.Get("/permissions", agentH.ListPermissions)
+			r.Post("/permissions", agentH.GrantPermission)
+			r.Delete("/permissions/{permId}", agentH.RevokePermission)
+		})
 
 		// Conformity assessments and declarations
 		r.Get("/v1/conformity/assessments", confH.ListAssessments)
