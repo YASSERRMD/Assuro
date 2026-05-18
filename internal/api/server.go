@@ -120,6 +120,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	connSvc := service.NewConnectorService(s.db)
 	shadowSvc := service.NewShadowAIService(s.db)
 	discoverySvc := service.NewDiscoveryService(s.db)
+	testingSvc := service.NewModelTestingService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -140,6 +141,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	connH := NewConnectorHandler(connSvc, logger)
 	shadowH := NewShadowAIHandler(shadowSvc, logger)
 	discoveryH := NewDiscoveryHandler(discoverySvc, logger)
+	testingH := NewModelTestingHandler(testingSvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -267,6 +269,21 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Post("/sync", connH.StartSyncRun)
 			r.Patch("/sync/{runId}", connH.FinishSyncRun)
 			r.Post("/scan", connH.ScanConnector)
+		})
+
+		// Model testing engine
+		r.Get("/v1/test-suites", testingH.ListSuites)
+		r.Post("/v1/test-suites", testingH.CreateSuite)
+		r.Route("/v1/test-suites/{id}", func(r chi.Router) {
+			r.Get("/cases", testingH.ListTestCases)
+			r.Post("/cases", testingH.AddTestCase)
+			r.Get("/runs", testingH.ListRuns)
+			r.Post("/runs", testingH.StartRun)
+		})
+		r.Route("/v1/test-runs/{id}", func(r chi.Router) {
+			r.Post("/results", testingH.RecordResult)
+			r.Get("/results", testingH.ListResults)
+			r.Post("/finish", testingH.FinishRun)
 		})
 
 		// Discovery inbox and reconciliation
