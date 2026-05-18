@@ -88,7 +88,7 @@ func (s *Service) ListForUser(ctx context.Context, userID string, limit int) ([]
 	}
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, org_id, user_id, category, title, body, severity,
-		        COALESCE(link_url, ''), read_at, created_at
+		        COALESCE(link_url, ''), read_at::text, created_at::text
 		 FROM notifications WHERE user_id = $1
 		 ORDER BY created_at DESC LIMIT $2`,
 		userID, limit,
