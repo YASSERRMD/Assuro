@@ -2,14 +2,21 @@
 
 import { useEffect, useState } from 'react'
 import { Shell } from '@/components/shell/Shell'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card } from '@/components/ui/Card'
-import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import { listGuardrails, createGuardrail, updateGuardrail, type Guardrail } from '@/lib/api/agents'
 import { Shield, Plus, X, ToggleLeft, ToggleRight } from 'lucide-react'
+
+const severityFromType: Record<string, { badge: string; label: string }> = {
+  content_filter: { badge: 'bg-red-100 text-red-700', label: 'High' },
+  rate_limit: { badge: 'bg-orange-100 text-orange-700', label: 'Medium' },
+  data_validation: { badge: 'bg-blue-100 text-blue-700', label: 'Low' },
+  output_check: { badge: 'bg-amber-100 text-amber-700', label: 'Medium' },
+  access_control: { badge: 'bg-purple-100 text-purple-700', label: 'High' },
+}
+
+function getSeverity(ruleType: string) {
+  return severityFromType[ruleType] ?? { badge: 'bg-gray-100 text-gray-500', label: 'Unknown' }
+}
 
 function CreateGuardrailModal({ onClose, onCreated }: {
   onClose: () => void
@@ -37,35 +44,62 @@ function CreateGuardrailModal({ onClose, onCreated }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-card-lg">
-        <div className="flex items-center justify-between">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md card-elevated p-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-gray-900">Create Guardrail</h2>
           <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <Input label="Name" value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="Guardrail name" required />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-600">Rule Type</label>
-            <select value={ruleType} onChange={(e) => setRuleType(e.target.value)}
-              className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-[#0f1f3d] focus:ring-2 focus:ring-[#0f1f3d]/10">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">Name</label>
+            <input
+              className="input-base"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Guardrail name"
+              required
+            />
+          </div>
+          <div>
+            <label className="label">Rule Type</label>
+            <select
+              value={ruleType}
+              onChange={(e) => setRuleType(e.target.value)}
+              className="input-base"
+            >
               {['content_filter', 'rate_limit', 'data_validation', 'output_check', 'access_control'].map((t) => (
                 <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
               ))}
             </select>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-600">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-              placeholder="What does this guardrail protect?" rows={3}
-              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#0f1f3d] focus:ring-2 focus:ring-[#0f1f3d]/10" />
+          <div>
+            <label className="label">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What does this guardrail protect?"
+              rows={3}
+              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#1B2A4A] focus:ring-2 focus:ring-[#1B2A4A]/10"
+            />
           </div>
           <div className="flex justify-end gap-3 pt-1">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Create'}</Button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition disabled:opacity-60"
+            >
+              {submitting ? 'Creating...' : 'Create'}
+            </button>
           </div>
         </form>
       </div>
@@ -98,77 +132,113 @@ export default function GuardrailsPage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Guardrails</h1>
-          <p className="mt-0.5 text-sm text-gray-500">Configure safety constraints for AI systems</p>
+          <h1 className="page-title">Guardrails</h1>
+          <p className="page-subtitle">Safety constraints and policy enforcement</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Guardrail
-        </Button>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
+        >
+          <Plus className="h-4 w-4" />New Guardrail
+        </button>
       </div>
 
       {loading && (
-        <div className="mt-6 space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="flex items-center justify-between">
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-4 w-64" />
+        <div className="card animate-in overflow-hidden">
+          <div className="divide-y divide-gray-50">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3">
+                <div className="shimmer h-4 rounded w-40" />
+                <div className="shimmer h-5 rounded-full w-16 ml-auto" />
+                <div className="shimmer h-5 rounded-full w-16" />
               </div>
-              <Skeleton className="h-6 w-16 rounded-full" />
-            </Card>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
       {!loading && guardrails.length === 0 && (
-        <div className="mt-10 flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50">
-            <Shield className="h-8 w-8 text-emerald-200" />
+        <div className="empty-state">
+          <div className="empty-icon">
+            <Shield className="h-6 w-6 text-gray-400" />
           </div>
-          <div>
-            <p className="text-base font-semibold text-gray-700">No guardrails defined</p>
-            <p className="mt-1 text-sm text-gray-400">Create your first guardrail to protect AI system outputs.</p>
-          </div>
-          <Button variant="outline" onClick={() => setShowCreate(true)} className="gap-2">
+          <p className="empty-title">No guardrails defined</p>
+          <p className="empty-body">Create your first guardrail to protect AI system outputs.</p>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+          >
             <Plus className="h-4 w-4" />Create Guardrail
-          </Button>
+          </button>
         </div>
       )}
 
       {!loading && guardrails.length > 0 && (
-        <div className="mt-6 space-y-3">
-          {guardrails.map((g) => (
-            <Card key={g.id} className="flex items-center gap-4">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#0f1f3d]/5">
-                <Shield className="h-4 w-4 text-[#0f1f3d]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-gray-900">{g.name}</p>
-                  <Badge variant="outline" className="text-[10px] capitalize">{g.rule_type.replace(/_/g, ' ')}</Badge>
-                </div>
-                {g.description && (
-                  <p className="mt-0.5 text-xs text-gray-500 truncate">{g.description}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge variant={g.enabled ? 'success' : 'default'}>{g.enabled ? 'Enabled' : 'Disabled'}</Badge>
-                <button
-                  onClick={() => handleToggle(g)}
-                  className="text-gray-400 hover:text-[#0f1f3d] transition"
-                  title={g.enabled ? 'Disable' : 'Enable'}
-                >
-                  {g.enabled
-                    ? <ToggleRight className="h-5 w-5 text-emerald-500" />
-                    : <ToggleLeft className="h-5 w-5" />
-                  }
-                </button>
-              </div>
-            </Card>
-          ))}
+        <div className="card animate-in overflow-hidden">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Severity</th>
+                <th className="text-right">Status</th>
+                <th className="text-right">Toggle</th>
+              </tr>
+            </thead>
+            <tbody>
+              {guardrails.map((g) => {
+                const sev = getSeverity(g.rule_type)
+                return (
+                  <tr key={g.id}>
+                    <td>
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#1B2A4A]/6">
+                          <Shield className="h-3.5 w-3.5 text-[#1B2A4A]" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{g.name}</p>
+                          {g.description && (
+                            <p className="text-xs text-gray-400 truncate max-w-xs">{g.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 capitalize">
+                        {g.rule_type.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${sev.badge}`}>
+                        {sev.label}
+                      </span>
+                    </td>
+                    <td className="text-right">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                        g.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {g.enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </td>
+                    <td className="text-right">
+                      <button
+                        onClick={() => handleToggle(g)}
+                        className="text-gray-400 hover:text-[#1B2A4A] transition"
+                        title={g.enabled ? 'Disable' : 'Enable'}
+                      >
+                        {g.enabled
+                          ? <ToggleRight className="h-5 w-5 text-emerald-500" />
+                          : <ToggleLeft className="h-5 w-5" />
+                        }
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
