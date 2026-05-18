@@ -418,9 +418,14 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 		if notifH != nil {
 			r.Get("/v1/notifications", notifH.ListNotifications)
 			r.Post("/v1/notifications/{id}/read", notifH.MarkRead)
+			r.Post("/v1/notifications/read-all", notifH.MarkAllRead)
+			r.Get("/v1/notifications/unread-count", notifH.UnreadCount)
+			r.Get("/v1/notifications/preferences", notifH.GetPreferences)
+			r.Put("/v1/notifications/preferences", notifH.SetPreferences)
 			r.Post("/v1/webhooks", notifH.CreateWebhook)
 			r.Get("/v1/webhooks", notifH.ListWebhooks)
 			r.Delete("/v1/webhooks/{id}", notifH.DeleteWebhook)
+			r.Get("/v1/webhooks/{id}/deliveries", notifH.WebhookDeliveryLogs)
 		}
 	})
 
