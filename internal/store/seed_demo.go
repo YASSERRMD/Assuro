@@ -11,8 +11,8 @@ import (
 
 // SeedAll runs all seeders in order.
 func SeedAll(ctx context.Context, db *DB) error {
-	if err := SeedFrameworks(ctx, db); err != nil {
-		return fmt.Errorf("seed frameworks: %w", err)
+	if err := SeedRegulatoryContent(ctx, db); err != nil {
+		return fmt.Errorf("seed regulatory content: %w", err)
 	}
 	if err := SeedAssessmentTemplates(ctx, db); err != nil {
 		return fmt.Errorf("seed templates: %w", err)
