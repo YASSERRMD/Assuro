@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/YASSERRMD/Assuro/internal/domain"
+	"github.com/YASSERRMD/Assuro/internal/risk"
 	"github.com/YASSERRMD/Assuro/internal/store"
 	qgen "github.com/YASSERRMD/Assuro/internal/store/queries/generated"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -13,17 +14,21 @@ import (
 
 // AISystemService handles AI system operations.
 type AISystemService struct {
-	db      *store.DB
-	queries *qgen.Queries
-	assets  *AssetService
+	db         *store.DB
+	queries    *qgen.Queries
+	assets     *AssetService
+	riskEngine *risk.Engine
+	riskCalc   *risk.ScoreCalculator
 }
 
 // NewAISystemService creates a new AI system service.
 func NewAISystemService(db *store.DB, assets *AssetService) *AISystemService {
 	return &AISystemService{
-		db:      db,
-		queries: qgen.New(db.Pool()),
-		assets:  assets,
+		db:         db,
+		queries:    qgen.New(db.Pool()),
+		assets:     assets,
+		riskEngine: risk.NewEngine(),
+		riskCalc:   &risk.ScoreCalculator{},
 	}
 }
 
@@ -109,7 +114,10 @@ func (s *AISystemService) RegisterAISystem(ctx context.Context, in RegisterAISys
 		return nil, fmt.Errorf("commit tx: %w", err)
 	}
 
-	return toDomainAISystem(asset, details), nil
+	aiSys := toDomainAISystem(asset, details)
+	// Auto-compute initial risk so the list view shows a real tier immediately.
+	s.autoComputeRisk(ctx, asset.ID, aiSys.Asset, aiSys.Details)
+	return aiSys, nil
 }
 
 // GetAISystem returns an AI system by asset ID.
@@ -254,7 +262,34 @@ func (s *AISystemService) BulkRegister(ctx context.Context, in BulkRegisterInput
 		return nil, fmt.Errorf("commit tx: %w", err)
 	}
 
+	// Auto-compute risk for each registered system.
+	for _, r := range results {
+		s.autoComputeRisk(ctx, parseUUID(r.Asset.ID), r.Asset, r.Details)
+	}
+
 	return results, nil
+}
+
+// autoComputeRisk runs risk classification after registration and persists the result.
+// It runs outside of the registration transaction so a risk failure never blocks registration.
+func (s *AISystemService) autoComputeRisk(ctx context.Context, assetID pgtype.UUID, asset domain.Asset, details domain.AISystemDetails) {
+	tier, factors, version := s.riskEngine.Classify(asset, details)
+	score := s.riskCalc.Calculate(factors)
+	factorBytes, _ := json.Marshal(factors)
+
+	_, _ = s.queries.CreateRiskAssessment(ctx, qgen.CreateRiskAssessmentParams{
+		AssetID:        assetID,
+		Tier:           string(tier),
+		Score:          int32(score),
+		Factors:        factorBytes,
+		RulesetVersion: version,
+		ComputedBy:     "system",
+	})
+
+	_, _ = s.db.Pool().Exec(ctx,
+		`UPDATE ai_system_details SET latest_risk_tier = $1, latest_risk_score = $2 WHERE asset_id = $3`,
+		string(tier), int32(score), assetID,
+	)
 }
 
 func toDomainAISystem(a qgen.Asset, d qgen.AiSystemDetail) *domain.AISystem {
@@ -294,6 +329,6 @@ func toDomainDetails(d qgen.AiSystemDetail) domain.AISystemDetails {
 		IsAgentic:           d.IsAgentic.Bool,
 		AutonomyLevel:       d.AutonomyLevel.Int32,
 		LifecycleStage:      d.LifecycleStage.String,
-		LatestRiskTier:      "unknown",
+		LatestRiskTier:      d.LatestRiskTier,
 	}
 }

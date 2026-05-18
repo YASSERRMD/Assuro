@@ -69,7 +69,8 @@ func (q *Queries) CreateAISystemDetails(ctx context.Context, arg CreateAISystemD
 }
 
 const getAISystemDetailsByAssetID = `-- name: GetAISystemDetailsByAssetID :one
-SELECT id, asset_id, provider, model_family, modality, deployment_context, data_sources, intended_purpose, affected_populations, eu_market_exposure, is_agentic, autonomy_level, lifecycle_stage, created_at, updated_at
+SELECT id, asset_id, provider, model_family, modality, deployment_context, data_sources, intended_purpose, affected_populations, eu_market_exposure, is_agentic, autonomy_level, lifecycle_stage, created_at, updated_at,
+       COALESCE(latest_risk_tier, 'unknown') AS latest_risk_tier
 FROM ai_system_details
 WHERE asset_id = $1
 `
@@ -93,6 +94,7 @@ func (q *Queries) GetAISystemDetailsByAssetID(ctx context.Context, assetID pgtyp
 		&i.LifecycleStage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LatestRiskTier,
 	)
 	return i, err
 }
