@@ -2,68 +2,111 @@ package api
 
 import (
 	"net/http"
-	"strconv"
+	"time"
 
 	"github.com/YASSERRMD/Assuro/internal/auth"
-	"github.com/YASSERRMD/Assuro/internal/store"
-	qgen "github.com/YASSERRMD/Assuro/internal/store/queries/generated"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/YASSERRMD/Assuro/internal/service"
 	"go.uber.org/zap"
 )
 
 // AuditHandler handles audit log HTTP requests.
 type AuditHandler struct {
-	db     *store.DB
+	svc    *service.AuditService
 	logger *zap.Logger
 }
 
 // NewAuditHandler creates a new audit handler.
-func NewAuditHandler(db *store.DB, logger *zap.Logger) *AuditHandler {
-	return &AuditHandler{db: db, logger: logger}
+func NewAuditHandler(svc *service.AuditService, logger *zap.Logger) *AuditHandler {
+	return &AuditHandler{svc: svc, logger: logger}
 }
 
-// List handles GET /v1/audit-log (owner/admin only).
+// List handles GET /v1/audit-log with optional filters:
+//
+//	?action=asset.created&target_type=asset&target_id=<uuid>
+//	&actor_id=<uuid>&since=2006-01-02&until=2006-01-02&limit=50&offset=0
 func (h *AuditHandler) List(w http.ResponseWriter, r *http.Request) {
 	p, ok := auth.PrincipalFromContext(r.Context())
 	if !ok {
 		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
 		return
 	}
-
 	if p.Role != "owner" && p.Role != "admin" {
 		WriteError(w, http.StatusForbidden, "forbidden", "admin or owner role required")
 		return
 	}
 
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	if limit <= 0 {
-		limit = 50
+	f := service.AuditFilter{
+		Action:     r.URL.Query().Get("action"),
+		TargetType: r.URL.Query().Get("target_type"),
+		TargetID:   r.URL.Query().Get("target_id"),
+		ActorID:    r.URL.Query().Get("actor_id"),
+		Limit:      intQuery(r, "limit", 50),
+		Offset:     intQuery(r, "offset", 0),
 	}
-	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	if s := r.URL.Query().Get("since"); s != "" {
+		if t, err := time.Parse("2006-01-02", s); err == nil {
+			f.Since = &t
+		}
+	}
+	if u := r.URL.Query().Get("until"); u != "" {
+		if t, err := time.Parse("2006-01-02", u); err == nil {
+			end := t.Add(24*time.Hour - time.Second)
+			f.Until = &end
+		}
+	}
 
-	queries := qgen.New(h.db.Pool())
-	entries, err := queries.ListAuditLogsByOrg(r.Context(), qgen.ListAuditLogsByOrgParams{
-		OrgID:  auditParseUUID(p.OrgID),
-		Limit:  int32(limit),
-		Offset: int32(offset),
-	})
+	entries, err := h.svc.List(r.Context(), p.OrgID, f)
 	if err != nil {
-		h.logger.Error("list audit log failed", zap.Error(err))
+		h.logger.Error("list audit log", zap.Error(err))
 		WriteError(w, http.StatusInternalServerError, "internal_error", "failed to list audit log")
 		return
 	}
-
 	writeJSON(w, http.StatusOK, entries)
 }
 
-// auditParseUUID converts a string UUID to pgtype.UUID.
-func auditParseUUID(s string) pgtype.UUID {
-	id, err := uuid.Parse(s)
-	if err != nil {
-		return pgtype.UUID{}
+// Export handles GET /v1/audit-log/export — streams CSV.
+func (h *AuditHandler) Export(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
+		return
 	}
-	var bytes [16]byte
-	copy(bytes[:], id[:])
-	return pgtype.UUID{Bytes: bytes, Valid: true}
+	if p.Role != "owner" && p.Role != "admin" {
+		WriteError(w, http.StatusForbidden, "forbidden", "admin or owner role required")
+		return
+	}
+
+	f := service.AuditFilter{
+		Action:     r.URL.Query().Get("action"),
+		TargetType: r.URL.Query().Get("target_type"),
+		TargetID:   r.URL.Query().Get("target_id"),
+		ActorID:    r.URL.Query().Get("actor_id"),
+	}
+	if s := r.URL.Query().Get("since"); s != "" {
+		if t, err := time.Parse("2006-01-02", s); err == nil {
+			f.Since = &t
+		}
+	}
+	if u := r.URL.Query().Get("until"); u != "" {
+		if t, err := time.Parse("2006-01-02", u); err == nil {
+			end := t.Add(24*time.Hour - time.Second)
+			f.Until = &end
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", `attachment; filename="audit-log.csv"`)
+	if err := h.svc.ExportCSV(r.Context(), p.OrgID, f, w); err != nil {
+		h.logger.Error("export audit log", zap.Error(err))
+	}
+}
+
+// Actions handles GET /v1/audit-log/actions — returns the list of known event actions.
+func (h *AuditHandler) Actions(w http.ResponseWriter, r *http.Request) {
+	_, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
+		return
+	}
+	writeJSON(w, http.StatusOK, service.KnownActions())
 }
