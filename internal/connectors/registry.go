@@ -17,6 +17,8 @@ func NewRegistry() *Registry {
 	r.Register(&BedrockConnector{})
 	r.Register(&AzureAIConnector{})
 	r.Register(&VertexConnector{})
+	r.Register(&GitHubConnector{})
+	r.Register(&HuggingFaceConnector{})
 	return r
 }
 

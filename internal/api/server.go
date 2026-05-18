@@ -118,6 +118,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	agentSvc := service.NewAgentService(s.db)
 	agentRuntimeSvc := service.NewAgentRuntimeService(s.db)
 	connSvc := service.NewConnectorService(s.db)
+	shadowSvc := service.NewShadowAIService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -136,6 +137,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	agentH := NewAgentHandler(agentSvc, logger)
 	agentRtH := NewAgentRuntimeHandler(agentRuntimeSvc, logger)
 	connH := NewConnectorHandler(connSvc, logger)
+	shadowH := NewShadowAIHandler(shadowSvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -233,7 +235,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 		// Monitoring signal ingest
 		r.Post("/v1/monitoring/signals", monH.RecordSignal)
 
-		// Agent registry and permissions
+		// Agent registry, permissions, runtime
 		r.Get("/v1/agents", agentH.ListAgents)
 		r.Post("/v1/agents", agentH.RegisterAgent)
 		r.Route("/v1/agents/{id}", func(r chi.Router) {
@@ -242,10 +244,6 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Get("/permissions", agentH.ListPermissions)
 			r.Post("/permissions", agentH.GrantPermission)
 			r.Delete("/permissions/{permId}", agentH.RevokePermission)
-		})
-
-		// Agent runtime: behavior logging, guardrails, kill-switch, anomalies
-		r.Route("/v1/agents/{id}", func(r chi.Router) {
 			r.Post("/behavior", agentRtH.RecordBehavior)
 			r.Get("/behavior", agentRtH.ListBehaviorLogs)
 			r.Post("/kill", agentRtH.KillSwitch)
@@ -268,6 +266,11 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Patch("/sync/{runId}", connH.FinishSyncRun)
 			r.Post("/scan", connH.ScanConnector)
 		})
+
+		// Shadow AI detection
+		r.Get("/v1/shadow-ai", shadowH.ListFindings)
+		r.Post("/v1/shadow-ai", shadowH.RecordFinding)
+		r.Patch("/v1/shadow-ai/{id}", shadowH.UpdateFindingStatus)
 
 		// Conformity assessments and declarations
 		r.Get("/v1/conformity/assessments", confH.ListAssessments)
