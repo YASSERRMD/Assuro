@@ -124,6 +124,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	policySvc := service.NewPolicyService(s.db)
 	modelCardSvc := service.NewModelCardService(s.db)
 	vendorSvc := service.NewVendorRiskService(s.db)
+	approvalSvc := service.NewApprovalService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -148,6 +149,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	policyH := NewPolicyHandler(policySvc, logger)
 	modelCardH := NewModelCardHandler(modelCardSvc, logger)
 	vendorH := NewVendorRiskHandler(vendorSvc, logger)
+	approvalH := NewApprovalHandler(approvalSvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -275,6 +277,16 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Post("/sync", connH.StartSyncRun)
 			r.Patch("/sync/{runId}", connH.FinishSyncRun)
 			r.Post("/scan", connH.ScanConnector)
+		})
+
+		// Approval gates
+		r.Get("/v1/approval-workflows", approvalH.ListWorkflows)
+		r.Post("/v1/approval-workflows", approvalH.CreateWorkflow)
+		r.Get("/v1/approval-requests", approvalH.ListRequests)
+		r.Post("/v1/approval-requests", approvalH.SubmitRequest)
+		r.Route("/v1/approval-requests/{id}", func(r chi.Router) {
+			r.Post("/decide", approvalH.Decide)
+			r.Get("/decisions", approvalH.ListDecisions)
 		})
 
 		// Vendor risk management
