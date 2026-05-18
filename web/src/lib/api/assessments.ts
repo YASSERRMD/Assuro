@@ -58,3 +58,13 @@ export interface AssessmentResponseItem {
 export async function getAssessmentResponses(id: string): Promise<AssessmentResponseItem[]> {
   return typedFetch<AssessmentResponseItem[]>(`/v1/assessments/${id}/responses`)
 }
+
+export interface AssessmentTemplate {
+  id: string
+  key: string
+  title: string
+}
+
+export async function listAssessmentTemplates(): Promise<AssessmentTemplate[]> {
+  return typedFetch<AssessmentTemplate[]>('/v1/assessment-templates')
+}
