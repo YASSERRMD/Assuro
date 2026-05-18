@@ -3,7 +3,7 @@
 CREATE TABLE IF NOT EXISTS agent_behavior_logs (
     id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     agent_id    uuid NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-    org_id      uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id      uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     action      text NOT NULL,
     input       jsonb NOT NULL DEFAULT '{}',
     output      jsonb NOT NULL DEFAULT '{}',
@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_behavior_org ON agent_behavior_logs (org_id
 
 CREATE TABLE IF NOT EXISTS guardrail_policies (
     id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id       uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id       uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name         text NOT NULL,
     description  text,
     policy_type  text NOT NULL DEFAULT 'block'
@@ -36,7 +36,7 @@ CREATE INDEX IF NOT EXISTS idx_guardrail_org ON guardrail_policies (org_id, enab
 CREATE TABLE IF NOT EXISTS agent_anomalies (
     id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     agent_id      uuid NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-    org_id        uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id        uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     anomaly_type  text NOT NULL,
     severity      text NOT NULL DEFAULT 'medium'
                       CHECK (severity IN ('low','medium','high','critical')),

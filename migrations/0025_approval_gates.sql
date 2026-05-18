@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS approval_workflows (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id          uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id          uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name            text NOT NULL,
     description     text,
     resource_type   text NOT NULL,
@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_approval_workflows_org ON approval_workflows (org
 CREATE TABLE IF NOT EXISTS approval_requests (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     workflow_id     uuid NOT NULL REFERENCES approval_workflows(id) ON DELETE CASCADE,
-    org_id          uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id          uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     resource_type   text NOT NULL,
     resource_id     text NOT NULL,
     title           text NOT NULL,
@@ -40,7 +40,7 @@ CREATE INDEX IF NOT EXISTS idx_approval_requests_resource ON approval_requests (
 CREATE TABLE IF NOT EXISTS approval_decisions (
     id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     request_id  uuid NOT NULL REFERENCES approval_requests(id) ON DELETE CASCADE,
-    org_id      uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id      uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     user_id     uuid NOT NULL REFERENCES users(id),
     decision    text NOT NULL CHECK (decision IN ('approve','reject')),
     comment     text,

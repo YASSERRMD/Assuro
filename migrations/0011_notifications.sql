@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS notifications (
     id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id     uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id     uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     category   text NOT NULL,
     title      text NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS notification_prefs (
 
 CREATE TABLE IF NOT EXISTS webhook_endpoints (
     id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id      uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id      uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     url         text NOT NULL,
     secret_ref  text NOT NULL,
     events      text[] NOT NULL DEFAULT '{}',
@@ -42,7 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_webhook_endpoints_org ON webhook_endpoints (org_i
 
 CREATE TABLE IF NOT EXISTS alert_rules (
     id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id       uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id       uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name         text NOT NULL,
     trigger_kind text NOT NULL,
     condition    jsonb NOT NULL DEFAULT '{}',

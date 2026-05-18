@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS agents (
     id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id       uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id       uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     asset_id     uuid REFERENCES assets(id) ON DELETE SET NULL,
     name         text NOT NULL,
     description  text,

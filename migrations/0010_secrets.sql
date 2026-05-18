@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS secrets (
     id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id     uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id     uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     scope      text NOT NULL,
     ref        text NOT NULL,
     ciphertext bytea NOT NULL,

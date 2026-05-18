@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS connectors (
     id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id         uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id         uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name           text NOT NULL,
     connector_type text NOT NULL,
     status         text NOT NULL DEFAULT 'active'
@@ -21,7 +21,7 @@ CREATE INDEX IF NOT EXISTS idx_connectors_org ON connectors (org_id, connector_t
 CREATE TABLE IF NOT EXISTS connector_sync_runs (
     id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     connector_id   uuid NOT NULL REFERENCES connectors(id) ON DELETE CASCADE,
-    org_id         uuid NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    org_id         uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     status         text NOT NULL DEFAULT 'pending'
                        CHECK (status IN ('pending','running','success','failed')),
     records_synced int NOT NULL DEFAULT 0,
