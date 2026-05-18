@@ -44,7 +44,15 @@ export default function EvidencePage() {
     const res = await fetch(`${API_BASE}/v1/evidence/${ev.id}/download`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-    if (!res.ok) { toast('Download failed.', 'error'); return }
+    if (!res.ok) {
+      const err = await res.json().catch(() => null)
+      if (err?.message === 'file not available') {
+        toast('File not on disk — upload the actual document to enable download.', 'warning')
+      } else {
+        toast('Download failed.', 'error')
+      }
+      return
+    }
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
