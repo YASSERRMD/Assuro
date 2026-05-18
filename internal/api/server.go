@@ -125,6 +125,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	modelCardSvc := service.NewModelCardService(s.db)
 	vendorSvc := service.NewVendorRiskService(s.db)
 	approvalSvc := service.NewApprovalService(s.db)
+	taskSvc := service.NewTaskService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -150,6 +151,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	modelCardH := NewModelCardHandler(modelCardSvc, logger)
 	vendorH := NewVendorRiskHandler(vendorSvc, logger)
 	approvalH := NewApprovalHandler(approvalSvc, logger)
+	taskH := NewTaskHandler(taskSvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -277,6 +279,16 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Post("/sync", connH.StartSyncRun)
 			r.Patch("/sync/{runId}", connH.FinishSyncRun)
 			r.Post("/scan", connH.ScanConnector)
+		})
+
+		// Task management
+		r.Get("/v1/tasks", taskH.ListTasks)
+		r.Post("/v1/tasks", taskH.CreateTask)
+		r.Route("/v1/tasks/{id}", func(r chi.Router) {
+			r.Patch("/status", taskH.UpdateTaskStatus)
+			r.Patch("/assign", taskH.AssignTask)
+			r.Get("/comments", taskH.ListComments)
+			r.Post("/comments", taskH.AddComment)
 		})
 
 		// Approval gates
