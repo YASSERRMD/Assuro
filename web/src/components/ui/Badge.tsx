@@ -1,11 +1,14 @@
-type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info'
+import { cn } from '@/lib/utils'
+
+type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'outline'
 
 const variants: Record<BadgeVariant, string> = {
-  default: 'bg-gray-100 text-gray-700',
-  success: 'bg-green-100 text-green-800',
-  warning: 'bg-orange-100 text-orange-800',
-  danger: 'bg-red-100 text-red-800',
-  info: 'bg-blue-100 text-blue-800',
+  default: 'bg-gray-100 text-gray-600 ring-gray-200/60',
+  success: 'bg-emerald-50 text-emerald-700 ring-emerald-200/60',
+  warning: 'bg-amber-50 text-amber-700 ring-amber-200/60',
+  danger: 'bg-red-50 text-red-700 ring-red-200/60',
+  info: 'bg-blue-50 text-blue-700 ring-blue-200/60',
+  outline: 'bg-transparent text-gray-600 ring-gray-200',
 }
 
 interface BadgeProps {
@@ -14,12 +17,13 @@ interface BadgeProps {
   className?: string
 }
 
-/** Badge renders a small coloured label chip. */
-export function Badge({ children, variant = 'default', className = '' }: BadgeProps) {
+export function Badge({ children, variant = 'default', className }: BadgeProps) {
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${variants[variant]} ${className}`}
-    >
+    <span className={cn(
+      'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1',
+      variants[variant],
+      className,
+    )}>
       {children}
     </span>
   )
