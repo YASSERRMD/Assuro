@@ -2,11 +2,9 @@
 
 import { useRef, useState } from 'react'
 import { Shell } from '@/components/shell/Shell'
-import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
 import { useToast } from '@/components/ui/Toast'
 import { exportOrg, exportAssetsCSV, importAssets, importVendors, type ImportResult } from '@/lib/api/exportimport'
-import { Download, Upload, FileDown, Database, Building2, Cpu } from 'lucide-react'
+import { Download, Upload, FileDown, Database, Building2, Cpu, Info, CheckCircle2, AlertCircle } from 'lucide-react'
 
 interface ImportStatus {
   result: ImportResult | null
@@ -92,156 +90,180 @@ export default function ExportPage() {
 
   return (
     <Shell>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Export / Import</h1>
-        <p className="mt-1 text-sm text-gray-500">Download your data or import assets and vendors from CSV</p>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Export / Import</h1>
+          <p className="page-subtitle">Download your data or bulk-import assets and vendors from CSV</p>
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2 animate-in">
         {/* Export section */}
-        <div>
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Export Data</h2>
-          <div className="space-y-3">
-            <Card className="flex items-center gap-4">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#0f1f3d]/5">
-                <Database className="h-5 w-5 text-[#0f1f3d]" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">Full Organisation Export</p>
-                <p className="text-xs text-gray-500">Download all AI systems, incidents, assessments, and policies as JSON</p>
-              </div>
-              <Button
-                onClick={handleExportOrg}
-                disabled={exportingOrg}
-                variant="outline"
-                className="gap-2 flex-shrink-0"
-              >
-                <FileDown className="h-4 w-4" />
-                {exportingOrg ? 'Exporting...' : 'Export'}
-              </Button>
-            </Card>
+        <div className="space-y-4">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-widest">Export Data</h2>
 
-            <Card className="flex items-center gap-4">
+          {/* Full org export */}
+          <div className="card p-4">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#1B2A4A]/5">
+                <Database className="h-5 w-5 text-[#1B2A4A]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900">Full Organisation Export</p>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  All AI systems, incidents, assessments, and policies as JSON.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleExportOrg}
+              disabled={exportingOrg}
+              className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-60"
+            >
+              <FileDown className="h-4 w-4" />
+              {exportingOrg ? 'Exporting...' : 'Download JSON'}
+            </button>
+          </div>
+
+          {/* AI assets CSV export */}
+          <div className="card p-4">
+            <div className="flex items-start gap-4">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50">
                 <Cpu className="h-5 w-5 text-blue-600" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900">AI Assets CSV</p>
-                <p className="text-xs text-gray-500">Download all registered AI systems and assets as a CSV file</p>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  All registered AI systems and assets as a spreadsheet-ready CSV file.
+                </p>
               </div>
-              <Button
-                onClick={handleExportAssetsCSV}
-                disabled={exportingCSV}
-                variant="outline"
-                className="gap-2 flex-shrink-0"
-              >
-                <Download className="h-4 w-4" />
-                {exportingCSV ? 'Exporting...' : 'Export CSV'}
-              </Button>
-            </Card>
+            </div>
+            <button
+              onClick={handleExportAssetsCSV}
+              disabled={exportingCSV}
+              className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-60"
+            >
+              <Download className="h-4 w-4" />
+              {exportingCSV ? 'Exporting...' : 'Download CSV'}
+            </button>
           </div>
         </div>
 
         {/* Import section */}
-        <div>
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Import Data</h2>
-          <div className="space-y-3">
-            {/* Import assets */}
-            <Card className="flex items-start gap-4">
+        <div className="space-y-4">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-widest">Import Data</h2>
+
+          {/* Import assets */}
+          <div className="card p-4">
+            <div className="flex items-start gap-4">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50">
                 <Cpu className="h-5 w-5 text-emerald-600" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900">Import Assets</p>
-                <p className="text-xs text-gray-500 mb-3">Upload a CSV file to bulk import AI assets</p>
-                <input
-                  ref={assetFileRef}
-                  type="file"
-                  accept=".csv,.json"
-                  onChange={handleImportAssets}
-                  className="hidden"
-                  id="import-assets"
-                />
-                <label htmlFor="import-assets">
-                  <Button
-                    variant="outline"
-                    className="gap-2 cursor-pointer"
-                    disabled={assetImport.loading}
-                    onClick={() => assetFileRef.current?.click()}
-                  >
-                    <Upload className="h-4 w-4" />
-                    {assetImport.loading ? 'Importing...' : 'Choose File'}
-                  </Button>
-                </label>
-                {assetImport.result && (
-                  <div className="mt-2 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                    Imported: {assetImport.result.imported} | Skipped: {assetImport.result.skipped}
-                    {assetImport.result.errors.length > 0 && (
-                      <div className="mt-1 text-red-600">{assetImport.result.errors.join(', ')}</div>
-                    )}
-                  </div>
-                )}
-                {assetImport.error && (
-                  <div className="mt-2 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">{assetImport.error}</div>
-                )}
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Bulk-import AI assets from a CSV file.
+                </p>
               </div>
-            </Card>
+            </div>
+            <input
+              ref={assetFileRef}
+              type="file"
+              accept=".csv,.json"
+              onChange={handleImportAssets}
+              className="hidden"
+              id="import-assets"
+            />
+            <button
+              onClick={() => assetFileRef.current?.click()}
+              disabled={assetImport.loading}
+              className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 py-2.5 text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition disabled:opacity-60"
+            >
+              <Upload className="h-4 w-4" />
+              {assetImport.loading ? 'Importing...' : 'Choose CSV / JSON'}
+            </button>
+            {assetImport.result && (
+              <div className="mt-2 flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2 text-xs text-emerald-700">
+                <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-emerald-500" />
+                <div>
+                  <span className="font-semibold">Imported {assetImport.result.imported}</span>, skipped {assetImport.result.skipped}
+                  {assetImport.result.errors.length > 0 && (
+                    <p className="mt-0.5 text-red-600">{assetImport.result.errors.join(', ')}</p>
+                  )}
+                </div>
+              </div>
+            )}
+            {assetImport.error && (
+              <div className="mt-2 flex items-center gap-2 rounded-lg bg-red-50 border border-red-100 px-3 py-2 text-xs text-red-600">
+                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 text-red-500" />
+                {assetImport.error}
+              </div>
+            )}
+          </div>
 
-            {/* Import vendors */}
-            <Card className="flex items-start gap-4">
+          {/* Import vendors */}
+          <div className="card p-4">
+            <div className="flex items-start gap-4">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-purple-50">
                 <Building2 className="h-5 w-5 text-purple-600" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900">Import Vendors</p>
-                <p className="text-xs text-gray-500 mb-3">Upload a CSV file to bulk import vendor data</p>
-                <input
-                  ref={vendorFileRef}
-                  type="file"
-                  accept=".csv,.json"
-                  onChange={handleImportVendors}
-                  className="hidden"
-                  id="import-vendors"
-                />
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  disabled={vendorImport.loading}
-                  onClick={() => vendorFileRef.current?.click()}
-                >
-                  <Upload className="h-4 w-4" />
-                  {vendorImport.loading ? 'Importing...' : 'Choose File'}
-                </Button>
-                {vendorImport.result && (
-                  <div className="mt-2 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                    Imported: {vendorImport.result.imported} | Skipped: {vendorImport.result.skipped}
-                    {vendorImport.result.errors.length > 0 && (
-                      <div className="mt-1 text-red-600">{vendorImport.result.errors.join(', ')}</div>
-                    )}
-                  </div>
-                )}
-                {vendorImport.error && (
-                  <div className="mt-2 rounded-md bg-red-50 px-3 py-2 text-xs text-red-600">{vendorImport.error}</div>
-                )}
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Bulk-import vendor data from a CSV file.
+                </p>
               </div>
-            </Card>
+            </div>
+            <input
+              ref={vendorFileRef}
+              type="file"
+              accept=".csv,.json"
+              onChange={handleImportVendors}
+              className="hidden"
+              id="import-vendors"
+            />
+            <button
+              onClick={() => vendorFileRef.current?.click()}
+              disabled={vendorImport.loading}
+              className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 py-2.5 text-sm font-medium text-gray-600 hover:border-gray-400 hover:bg-gray-50 transition disabled:opacity-60"
+            >
+              <Upload className="h-4 w-4" />
+              {vendorImport.loading ? 'Importing...' : 'Choose CSV / JSON'}
+            </button>
+            {vendorImport.result && (
+              <div className="mt-2 flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2 text-xs text-emerald-700">
+                <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-emerald-500" />
+                <div>
+                  <span className="font-semibold">Imported {vendorImport.result.imported}</span>, skipped {vendorImport.result.skipped}
+                  {vendorImport.result.errors.length > 0 && (
+                    <p className="mt-0.5 text-red-600">{vendorImport.result.errors.join(', ')}</p>
+                  )}
+                </div>
+              </div>
+            )}
+            {vendorImport.error && (
+              <div className="mt-2 flex items-center gap-2 rounded-lg bg-red-50 border border-red-100 px-3 py-2 text-xs text-red-600">
+                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 text-red-500" />
+                {vendorImport.error}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Info */}
-      <Card className="mt-6 bg-blue-50 border-blue-100">
+      {/* Info banner */}
+      <div className="mt-5 card p-4 bg-blue-50 border-blue-100">
         <div className="flex items-start gap-3">
-          <Download className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+          <Info className="h-4 w-4 flex-shrink-0 mt-0.5 text-blue-500" />
           <div>
             <p className="text-sm font-semibold text-blue-900">Data Portability</p>
-            <p className="mt-1 text-xs text-blue-700">
+            <p className="mt-0.5 text-xs text-blue-700">
               Export your data at any time in standard formats (JSON, CSV). Imports support CSV files with the required column headers.
               Contact your administrator for schema documentation.
             </p>
           </div>
         </div>
-      </Card>
+      </div>
     </Shell>
   )
 }
