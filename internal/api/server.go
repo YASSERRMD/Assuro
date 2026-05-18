@@ -266,6 +266,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Get("/sync", connH.ListSyncRuns)
 			r.Post("/sync", connH.StartSyncRun)
 			r.Patch("/sync/{runId}", connH.FinishSyncRun)
+			r.Post("/scan", connH.ScanConnector)
 		})
 
 		// Conformity assessments and declarations
