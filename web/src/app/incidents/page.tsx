@@ -248,7 +248,7 @@ export default function IncidentsPage() {
                   <td className="text-xs text-gray-500 font-mono">
                     {inc.asset_id ? inc.asset_id.slice(0, 8) + '...' : '-'}
                   </td>
-                  <td className="text-xs text-gray-500">{inc.reporter_email ?? '-'}</td>
+                  <td className="text-xs text-gray-500">{'-'}</td>
                   <td className="text-xs text-gray-400">
                     {inc.raised_at ? new Date(inc.raised_at).toLocaleDateString() : '-'}
                   </td>

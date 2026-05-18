@@ -272,7 +272,7 @@ export default function NotificationsPage() {
           ) : (
             <div className="space-y-2 animate-in">
               {notifications.map((n) => {
-                const severity = (n as Record<string, string>).severity ?? 'low'
+                const severity = (n as { severity?: string }).severity ?? 'low'
                 const IconComp = severityIcon[severity] ?? Bell
                 const iconStyle = severityIconColor[severity] ?? 'text-gray-600 bg-gray-50'
                 return (
@@ -403,7 +403,7 @@ export default function NotificationsPage() {
                         </span>
                       </td>
                       <td className="text-xs text-gray-500">
-                        {(rule.channels ?? []).join(', ') || '-'}
+                        {((rule as {channels?:string[]}).channels ?? []).join(', ') || '-'}
                       </td>
                       <td>
                         {rule.enabled

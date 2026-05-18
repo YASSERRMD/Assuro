@@ -220,7 +220,7 @@ export default function ModelTestingPage() {
                       </div>
                     </td>
                     <td className="text-sm text-gray-500">
-                      {(suite.test_cases_count ?? 0)} cases
+                      {(suite as { test_cases_count?: number }).test_cases_count ?? 0} cases
                     </td>
                     <td className="text-xs text-gray-400">
                       {new Date(suite.created_at).toLocaleDateString()}
