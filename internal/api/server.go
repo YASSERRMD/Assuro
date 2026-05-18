@@ -13,6 +13,7 @@ import (
 	"github.com/YASSERRMD/Assuro/internal/config"
 	"github.com/YASSERRMD/Assuro/internal/report"
 	"github.com/YASSERRMD/Assuro/internal/service"
+	"github.com/YASSERRMD/Assuro/internal/storage"
 	"github.com/YASSERRMD/Assuro/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -102,7 +103,8 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	riskSvc := service.NewRiskService(s.db, aiSvc)
 	fwSvc := service.NewFrameworkService(s.db)
 	assessSvc := service.NewAssessmentService(s.db, fwSvc)
-	evidSvc := service.NewEvidenceService(s.db)
+	blobStore := storage.NewLocalStore("data/evidence")
+	evidSvc := service.NewEvidenceService(s.db, blobStore)
 	monSvc := service.NewMonitoringService(s.db)
 	incSvc := service.NewIncidentService(s.db)
 	reportBuilder := report.NewBuilder()
@@ -177,6 +179,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 		// Evidence store
 		r.Post("/v1/evidence", evidH.Upload)
 		r.Get("/v1/evidence", evidH.List)
+		r.Get("/v1/evidence/{id}/download", evidH.Download)
 
 		// Monitoring signal ingest
 		r.Post("/v1/monitoring/signals", monH.RecordSignal)
