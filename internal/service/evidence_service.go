@@ -1,12 +1,16 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"path/filepath"
+	"time"
 
+	"github.com/YASSERRMD/Assuro/internal/storage"
 	"github.com/YASSERRMD/Assuro/internal/store"
 	qgen "github.com/YASSERRMD/Assuro/internal/store/queries/generated"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -16,13 +20,16 @@ import (
 type EvidenceService struct {
 	db      *store.DB
 	queries *qgen.Queries
+	blobs   storage.BlobStore
 }
 
 // NewEvidenceService creates a new evidence service.
-func NewEvidenceService(db *store.DB) *EvidenceService {
+// blobs may be nil, in which case file storage is skipped (metadata-only mode).
+func NewEvidenceService(db *store.DB, blobs storage.BlobStore) *EvidenceService {
 	return &EvidenceService{
 		db:      db,
 		queries: qgen.New(db.Pool()),
+		blobs:   blobs,
 	}
 }
 
@@ -31,22 +38,45 @@ type UploadEvidenceInput struct {
 	OrgID       string
 	Title       string
 	Description string
-	FileKey     string
+	OriginalName string
 	MimeType    string
 	SizeBytes   int64
 	UploadedBy  string
 	Content     io.Reader
 }
 
-// UploadEvidence stores evidence metadata and computes content hash.
+// UploadEvidence stores the file via the blob store and persists metadata.
 func (s *EvidenceService) UploadEvidence(ctx context.Context, in UploadEvidenceInput) (*qgen.Evidence, error) {
-	hasher := sha256.New()
+	// Read file content once to hash it and optionally store it.
+	var buf bytes.Buffer
+	var contentHash string
 	if in.Content != nil {
-		if _, err := io.Copy(hasher, in.Content); err != nil {
-			return nil, fmt.Errorf("compute hash: %w", err)
+		hasher := sha256.New()
+		tee := io.TeeReader(in.Content, &buf)
+		if _, err := io.Copy(hasher, tee); err != nil {
+			return nil, fmt.Errorf("read content: %w", err)
+		}
+		contentHash = hex.EncodeToString(hasher.Sum(nil))
+	}
+
+	// Derive a stable, collision-resistant file key from the hash.
+	ext := filepath.Ext(in.OriginalName)
+	fileKey := ""
+	if contentHash != "" {
+		fileKey = fmt.Sprintf("evidence/%s/%s/%s%s",
+			in.OrgID,
+			time.Now().UTC().Format("2006/01"),
+			contentHash[:16],
+			ext,
+		)
+	}
+
+	// Persist the file bytes if a blob store is configured.
+	if s.blobs != nil && buf.Len() > 0 && fileKey != "" {
+		if err := s.blobs.Upload(ctx, fileKey, &buf); err != nil {
+			return nil, fmt.Errorf("store file: %w", err)
 		}
 	}
-	contentHash := hex.EncodeToString(hasher.Sum(nil))
 
 	orgID := parseUUID(in.OrgID)
 	uID := pgtype.UUID{}
@@ -58,7 +88,7 @@ func (s *EvidenceService) UploadEvidence(ctx context.Context, in UploadEvidenceI
 		OrgID:       orgID,
 		Title:       in.Title,
 		Description: pgtype.Text{String: in.Description, Valid: in.Description != ""},
-		FileKey:     in.FileKey,
+		FileKey:     fileKey,
 		ContentHash: contentHash,
 		MimeType:    pgtype.Text{String: in.MimeType, Valid: in.MimeType != ""},
 		SizeBytes:   in.SizeBytes,
@@ -69,6 +99,22 @@ func (s *EvidenceService) UploadEvidence(ctx context.Context, in UploadEvidenceI
 	}
 
 	return &evidence, nil
+}
+
+// DownloadEvidence returns the file stream for an evidence record.
+func (s *EvidenceService) DownloadEvidence(ctx context.Context, id string) (io.ReadCloser, *qgen.Evidence, error) {
+	ev, err := s.GetEvidenceByID(ctx, id)
+	if err != nil {
+		return nil, nil, err
+	}
+	if ev.FileKey == "" || s.blobs == nil {
+		return nil, nil, fmt.Errorf("no file stored for this evidence record")
+	}
+	rc, err := s.blobs.Download(ctx, ev.FileKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("retrieve file: %w", err)
+	}
+	return rc, ev, nil
 }
 
 // LinkEvidence links evidence to a target.
@@ -86,6 +132,20 @@ func (s *EvidenceService) LinkEvidence(ctx context.Context, evidenceID, targetTy
 	}
 
 	return nil
+}
+
+// ListEvidenceByOrg returns all evidence for an organization.
+func (s *EvidenceService) ListEvidenceByOrg(ctx context.Context, orgID string) ([]qgen.Evidence, error) {
+	oID := parseUUID(orgID)
+	rows, err := s.queries.ListEvidenceByOrg(ctx, qgen.ListEvidenceByOrgParams{
+		OrgID:  oID,
+		Limit:  200,
+		Offset: 0,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list evidence by org: %w", err)
+	}
+	return rows, nil
 }
 
 // ListEvidenceByTarget returns evidence linked to a target.

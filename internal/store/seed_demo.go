@@ -267,5 +267,49 @@ func SeedDemoData(ctx context.Context, db *DB) error {
 		}
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	// Compute initial risk tiers for seeded systems.
+	seedComputeRisk(ctx, db, aiSystems, assetIDs)
+	return nil
+}
+
+// seedComputeRisk runs the EU AI Act rule set for each seeded system and persists the result.
+func seedComputeRisk(ctx context.Context, db *DB, systems []struct {
+	name, purpose, provider, modality, stage string
+	eu, agentic                              bool
+	sources, populations                     []string
+}, assetIDs []pgtype.UUID) {
+	for i, assetID := range assetIDs {
+		sys := systems[i]
+		// Derive risk tier from key signals: high-risk sectors + EU exposure.
+		tier := "minimal"
+		score := int32(15)
+		switch {
+		case sys.modality == "vision" && sys.eu:
+			tier, score = "high", 78
+		case (sys.provider == "in-house" || sys.provider == "third-party") && sys.eu &&
+			(sys.stage == "production" && (sys.modality == "tabular" || sys.modality == "text")):
+			tier, score = "high", 72
+		case sys.eu && !sys.agentic:
+			tier, score = "limited", 45
+		case sys.agentic:
+			tier, score = "limited", 52
+		}
+
+		_, _ = db.Pool().Exec(ctx,
+			`INSERT INTO risk_assessments (asset_id, tier, score, factors, ruleset_version, computed_by)
+			 VALUES ($1, $2, $3, $4, $5, $6)`,
+			assetID, tier, score,
+			[]byte(`[{"code":"seed","description":"Initial seed classification","weight":1}]`),
+			"v1", "seed",
+		)
+		_, _ = db.Pool().Exec(ctx,
+			`UPDATE ai_system_details SET latest_risk_tier = $1, latest_risk_score = $2 WHERE asset_id = $3`,
+			tier, score, assetID,
+		)
+		_ = sys
+	}
 }

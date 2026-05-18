@@ -24,6 +24,7 @@ type AiSystemDetail struct {
 	LifecycleStage      pgtype.Text        `json:"lifecycle_stage"`
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+	LatestRiskTier      string             `json:"latest_risk_tier"`
 }
 
 type Assessment struct {
