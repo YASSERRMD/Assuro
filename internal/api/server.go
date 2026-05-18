@@ -123,6 +123,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	testingSvc := service.NewModelTestingService(s.db)
 	policySvc := service.NewPolicyService(s.db)
 	modelCardSvc := service.NewModelCardService(s.db)
+	vendorSvc := service.NewVendorRiskService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -146,6 +147,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	testingH := NewModelTestingHandler(testingSvc, logger)
 	policyH := NewPolicyHandler(policySvc, logger)
 	modelCardH := NewModelCardHandler(modelCardSvc, logger)
+	vendorH := NewVendorRiskHandler(vendorSvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -273,6 +275,14 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Post("/sync", connH.StartSyncRun)
 			r.Patch("/sync/{runId}", connH.FinishSyncRun)
 			r.Post("/scan", connH.ScanConnector)
+		})
+
+		// Vendor risk management
+		r.Get("/v1/vendors", vendorH.ListVendors)
+		r.Post("/v1/vendors", vendorH.CreateVendor)
+		r.Route("/v1/vendors/{id}", func(r chi.Router) {
+			r.Get("/assessments", vendorH.ListAssessments)
+			r.Post("/assessments", vendorH.CreateAssessment)
 		})
 
 		// Model cards
