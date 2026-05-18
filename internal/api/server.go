@@ -160,6 +160,8 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	auditH := NewAuditHandler(auditSvc, logger)
 	rbacSvc := service.NewRBACService(s.db)
 	rbacH := NewRBACHandler(rbacSvc, logger)
+	exportSvc := service.NewExportService(s.db)
+	exportH := NewExportHandler(exportSvc, logger)
 
 	// AI assist provider (always available, defaults to null)
 	aiProvider, _ := aiassist.Build(aiassist.ConfigFromEnv())
@@ -398,6 +400,12 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Post("/", rbacH.AssignUserRole)
 			r.Delete("/{role_id}", rbacH.RemoveUserRole)
 		})
+
+		// Data export and import
+		r.Get("/v1/export", exportH.ExportOrg)
+		r.Get("/v1/export/assets.csv", exportH.ExportAssetsCSV)
+		r.Post("/v1/import/assets", exportH.ImportAssets)
+		r.Post("/v1/import/vendors", exportH.ImportVendors)
 
 		// Admin: background job management (requires DB)
 		if jobsH != nil {
