@@ -2,11 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { Shell } from '@/components/shell/Shell'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card } from '@/components/ui/Card'
-import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import {
   listNotifications,
@@ -20,9 +15,23 @@ import {
   type Webhook,
   type AlertRule,
 } from '@/lib/api/notifications'
-import { Bell, X, Plus, Trash2, CheckCheck } from 'lucide-react'
+import { Bell, X, Plus, Trash2, CheckCheck, AlertTriangle, Info, AlertCircle, ToggleLeft, ToggleRight } from 'lucide-react'
 
 type Tab = 'notifications' | 'webhooks' | 'alert-rules'
+
+const severityIcon: Record<string, React.ElementType> = {
+  critical: AlertCircle,
+  high: AlertTriangle,
+  medium: AlertTriangle,
+  low: Info,
+}
+
+const severityIconColor: Record<string, string> = {
+  critical: 'text-red-600 bg-red-50',
+  high: 'text-orange-600 bg-orange-50',
+  medium: 'text-amber-600 bg-amber-50',
+  low: 'text-blue-600 bg-blue-50',
+}
 
 function AddWebhookModal({ onClose, onCreated }: {
   onClose: () => void
@@ -49,20 +58,40 @@ function AddWebhookModal({ onClose, onCreated }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-card-lg">
-        <div className="flex items-center justify-between">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md card-elevated p-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-gray-900">Add Webhook</h2>
           <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Webhook name" required />
-          <Input label="URL" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." required />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">Name</label>
+            <input
+              className="input-base"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Webhook name"
+              required
+            />
+          </div>
+          <div>
+            <label className="label">URL</label>
+            <input
+              className="input-base"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://..."
+              required
+            />
+          </div>
           <div className="flex justify-end gap-3 pt-1">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Add'}</Button>
+            <button type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition">Cancel</button>
+            <button type="submit" disabled={submitting} className="rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition disabled:opacity-60">
+              {submitting ? 'Adding...' : 'Add'}
+            </button>
           </div>
         </form>
       </div>
@@ -96,28 +125,34 @@ function AddAlertRuleModal({ onClose, onCreated }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-card-lg">
-        <div className="flex items-center justify-between">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md card-elevated p-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-gray-900">Create Alert Rule</h2>
           <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <Input label="Rule Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Alert name" required />
-          <Input label="Condition" value={condition} onChange={(e) => setCondition(e.target.value)}
-            placeholder="E.g. risk_score > 80" required />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-600">Severity</label>
-            <select value={severity} onChange={(e) => setSeverity(e.target.value)}
-              className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-[#0f1f3d] focus:ring-2 focus:ring-[#0f1f3d]/10">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">Rule Name</label>
+            <input className="input-base" value={name} onChange={(e) => setName(e.target.value)} placeholder="Alert name" required />
+          </div>
+          <div>
+            <label className="label">Condition</label>
+            <input className="input-base" value={condition} onChange={(e) => setCondition(e.target.value)} placeholder="e.g. risk_score > 80" required />
+          </div>
+          <div>
+            <label className="label">Severity</label>
+            <select value={severity} onChange={(e) => setSeverity(e.target.value)} className="input-base">
               {['low', 'medium', 'high', 'critical'].map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div className="flex justify-end gap-3 pt-1">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Create'}</Button>
+            <button type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition">Cancel</button>
+            <button type="submit" disabled={submitting} className="rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition disabled:opacity-60">
+              {submitting ? 'Creating...' : 'Create'}
+            </button>
           </div>
         </form>
       </div>
@@ -163,76 +198,92 @@ export default function NotificationsPage() {
     }
   }
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'notifications', label: 'Notifications' },
-    { id: 'webhooks', label: 'Webhooks' },
-    { id: 'alert-rules', label: 'Alert Rules' },
-  ]
+  const unreadCount = notifications.filter((n) => !n.read).length
 
   return (
     <Shell>
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-          <p className="mt-0.5 text-sm text-gray-500">Manage alerts, webhooks, and notification rules</p>
+          <h1 className="page-title">Notifications</h1>
+          <p className="page-subtitle">Manage alerts, webhooks, and notification rules</p>
         </div>
         {tab === 'webhooks' && (
-          <Button onClick={() => setShowAddWebhook(true)} className="gap-2">
+          <button
+            onClick={() => setShowAddWebhook(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
+          >
             <Plus className="h-4 w-4" />Add Webhook
-          </Button>
+          </button>
         )}
         {tab === 'alert-rules' && (
-          <Button onClick={() => setShowAddAlert(true)} className="gap-2">
+          <button
+            onClick={() => setShowAddAlert(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
+          >
             <Plus className="h-4 w-4" />Create Alert Rule
-          </Button>
+          </button>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="mt-5 flex gap-1 border-b border-gray-200">
-        {tabs.map((t) => (
+      <div className="tab-nav mb-4 animate-in">
+        {([
+          { id: 'notifications' as Tab, label: 'Notifications', count: unreadCount },
+          { id: 'webhooks' as Tab, label: 'Webhooks', count: 0 },
+          { id: 'alert-rules' as Tab, label: 'Alert Rules', count: 0 },
+        ]).map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`pb-2 px-4 text-sm font-medium transition border-b-2 -mb-px ${
-              tab === t.id ? 'border-[#0f1f3d] text-[#0f1f3d]' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`tab-item ${tab === t.id ? 'active' : ''}`}
           >
             {t.label}
+            {t.count > 0 && (
+              <span className="ml-1 rounded-full bg-red-100 text-red-700 px-1.5 py-0.5 text-[10px] font-bold">
+                {t.count}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      <div className="mt-4">
-        {loading && (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}>
-                <Skeleton className="h-5 w-48 mb-2" />
-                <Skeleton className="h-4 w-full" />
-              </Card>
-            ))}
-          </div>
-        )}
+      {loading && (
+        <div className="space-y-2 animate-in">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="card p-4">
+              <div className="shimmer h-4 rounded w-48 mb-2" />
+              <div className="shimmer h-4 rounded w-full" />
+            </div>
+          ))}
+        </div>
+      )}
 
-        {/* Notifications tab */}
-        {!loading && tab === 'notifications' && (
-          <>
-            {notifications.length === 0 && (
-              <div className="mt-8 flex flex-col items-center gap-4 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50">
-                  <Bell className="h-8 w-8 text-amber-200" />
-                </div>
-                <p className="text-base font-semibold text-gray-700">No notifications</p>
-                <p className="text-sm text-gray-400">You are all caught up.</p>
+      {/* Notifications tab */}
+      {!loading && tab === 'notifications' && (
+        <>
+          {notifications.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">
+                <Bell className="h-6 w-6 text-gray-400" />
               </div>
-            )}
-            {notifications.length > 0 && (
-              <div className="space-y-2">
-                {notifications.map((n) => (
-                  <Card key={n.id} className={`flex items-start gap-3 ${n.read ? 'opacity-60' : ''}`}>
-                    <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${n.read ? 'bg-gray-50' : 'bg-amber-50'}`}>
-                      <Bell className={`h-4 w-4 ${n.read ? 'text-gray-400' : 'text-amber-600'}`} />
+              <p className="empty-title">No notifications</p>
+              <p className="empty-body">You are all caught up.</p>
+            </div>
+          ) : (
+            <div className="space-y-2 animate-in">
+              {notifications.map((n) => {
+                const severity = (n as Record<string, string>).severity ?? 'low'
+                const IconComp = severityIcon[severity] ?? Bell
+                const iconStyle = severityIconColor[severity] ?? 'text-gray-600 bg-gray-50'
+                return (
+                  <div
+                    key={n.id}
+                    className={`flex items-start gap-3 rounded-xl border bg-white p-4 transition ${
+                      !n.read ? 'border-l-4 border-l-[#1B2A4A] border-gray-100' : 'border-gray-100 opacity-60'
+                    }`}
+                  >
+                    <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${iconStyle}`}>
+                      <IconComp className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-semibold ${n.read ? 'text-gray-500' : 'text-gray-900'}`}>{n.title}</p>
@@ -242,88 +293,132 @@ export default function NotificationsPage() {
                     {!n.read && (
                       <button
                         onClick={() => handleMarkRead(n.id)}
-                        className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 transition flex-shrink-0"
+                        className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 transition flex-shrink-0"
                       >
                         <CheckCheck className="h-3 w-3" />Mark read
                       </button>
                     )}
-                  </Card>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
 
-        {/* Webhooks tab */}
-        {!loading && tab === 'webhooks' && (
-          <>
-            {webhooks.length === 0 && (
-              <div className="mt-8 flex flex-col items-center gap-4 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50">
-                  <Bell className="h-8 w-8 text-amber-200" />
-                </div>
-                <p className="text-base font-semibold text-gray-700">No webhooks configured</p>
-                <p className="text-sm text-gray-400">Add webhooks to push events to external systems.</p>
+      {/* Webhooks tab */}
+      {!loading && tab === 'webhooks' && (
+        <>
+          {webhooks.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">
+                <Bell className="h-6 w-6 text-gray-400" />
               </div>
-            )}
-            {webhooks.length > 0 && (
-              <div className="space-y-3">
-                {webhooks.map((wh) => (
-                  <Card key={wh.id} className="flex items-center gap-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{wh.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{wh.url}</p>
-                    </div>
-                    <Badge variant={wh.active ? 'success' : 'default'}>{wh.active ? 'Active' : 'Inactive'}</Badge>
-                    <button
-                      onClick={() => handleDeleteWebhook(wh.id)}
-                      className="text-red-400 hover:text-red-600 transition"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+              <p className="empty-title">No webhooks configured</p>
+              <p className="empty-body">Add webhooks to push events to external systems.</p>
+            </div>
+          ) : (
+            <div className="card animate-in overflow-hidden">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>URL</th>
+                    <th>Events</th>
+                    <th>Status</th>
+                    <th className="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {webhooks.map((wh) => (
+                    <tr key={wh.id}>
+                      <td className="font-medium text-gray-900">{wh.name}</td>
+                      <td className="text-xs text-gray-500 font-mono truncate max-w-xs">{wh.url}</td>
+                      <td>
+                        <div className="flex flex-wrap gap-1">
+                          {(wh.events ?? []).map((ev) => (
+                            <span key={ev} className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700">{ev}</span>
+                          ))}
+                          {(!wh.events || wh.events.length === 0) && (
+                            <span className="text-xs text-gray-400">No events</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${wh.active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {wh.active ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </td>
+                      <td className="text-right">
+                        <button
+                          onClick={() => handleDeleteWebhook(wh.id)}
+                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-50 transition"
+                        >
+                          <Trash2 className="h-3 w-3" />Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
 
-        {/* Alert rules tab */}
-        {!loading && tab === 'alert-rules' && (
-          <>
-            {alertRules.length === 0 && (
-              <div className="mt-8 flex flex-col items-center gap-4 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50">
-                  <Bell className="h-8 w-8 text-amber-200" />
-                </div>
-                <p className="text-base font-semibold text-gray-700">No alert rules</p>
-                <p className="text-sm text-gray-400">Create rules to be notified when conditions are met.</p>
+      {/* Alert rules tab */}
+      {!loading && tab === 'alert-rules' && (
+        <>
+          {alertRules.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">
+                <Bell className="h-6 w-6 text-gray-400" />
               </div>
-            )}
-            {alertRules.length > 0 && (
-              <div className="space-y-3">
-                {alertRules.map((rule) => (
-                  <Card key={rule.id} className="flex items-start gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-gray-900">{rule.name}</p>
-                        <Badge variant={rule.enabled ? 'success' : 'default'}>{rule.enabled ? 'Active' : 'Disabled'}</Badge>
-                      </div>
-                      <p className="mt-0.5 text-xs font-mono text-gray-500">{rule.condition}</p>
-                      {rule.description && (
-                        <p className="mt-0.5 text-xs text-gray-400">{rule.description}</p>
-                      )}
-                    </div>
-                    <Badge variant={rule.severity === 'critical' ? 'danger' : rule.severity === 'high' ? 'warning' : 'default'} className="capitalize flex-shrink-0">
-                      {rule.severity}
-                    </Badge>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+              <p className="empty-title">No alert rules</p>
+              <p className="empty-body">Create rules to be notified when conditions are met.</p>
+            </div>
+          ) : (
+            <div className="card animate-in overflow-hidden">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Rule Name</th>
+                    <th>Trigger / Condition</th>
+                    <th>Channels</th>
+                    <th>Enabled</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {alertRules.map((rule) => (
+                    <tr key={rule.id}>
+                      <td>
+                        <p className="font-medium text-gray-900">{rule.name}</p>
+                        {rule.description && (
+                          <p className="text-xs text-gray-400">{rule.description}</p>
+                        )}
+                      </td>
+                      <td>
+                        <span className="font-mono text-xs text-gray-600 bg-gray-50 rounded px-1.5 py-0.5">
+                          {rule.condition}
+                        </span>
+                      </td>
+                      <td className="text-xs text-gray-500">
+                        {(rule.channels ?? []).join(', ') || '-'}
+                      </td>
+                      <td>
+                        {rule.enabled
+                          ? <ToggleRight className="h-5 w-5 text-emerald-500" />
+                          : <ToggleLeft className="h-5 w-5 text-gray-400" />
+                        }
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
 
       {showAddWebhook && (
         <AddWebhookModal
