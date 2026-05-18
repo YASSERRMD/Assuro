@@ -122,6 +122,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	discoverySvc := service.NewDiscoveryService(s.db)
 	testingSvc := service.NewModelTestingService(s.db)
 	policySvc := service.NewPolicyService(s.db)
+	modelCardSvc := service.NewModelCardService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -144,6 +145,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	discoveryH := NewDiscoveryHandler(discoverySvc, logger)
 	testingH := NewModelTestingHandler(testingSvc, logger)
 	policyH := NewPolicyHandler(policySvc, logger)
+	modelCardH := NewModelCardHandler(modelCardSvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -271,6 +273,14 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Post("/sync", connH.StartSyncRun)
 			r.Patch("/sync/{runId}", connH.FinishSyncRun)
 			r.Post("/scan", connH.ScanConnector)
+		})
+
+		// Model cards
+		r.Get("/v1/model-cards", modelCardH.ListCards)
+		r.Post("/v1/model-cards", modelCardH.CreateCard)
+		r.Route("/v1/model-cards/{id}", func(r chi.Router) {
+			r.Patch("/", modelCardH.UpdateCard)
+			r.Post("/publish", modelCardH.PublishCard)
 		})
 
 		// Policy management
