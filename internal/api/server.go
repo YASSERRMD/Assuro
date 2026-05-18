@@ -126,6 +126,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	vendorSvc := service.NewVendorRiskService(s.db)
 	approvalSvc := service.NewApprovalService(s.db)
 	taskSvc := service.NewTaskService(s.db)
+	analyticsSvc := service.NewAnalyticsService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -152,6 +153,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	vendorH := NewVendorRiskHandler(vendorSvc, logger)
 	approvalH := NewApprovalHandler(approvalSvc, logger)
 	taskH := NewTaskHandler(taskSvc, logger)
+	analyticsH := NewAnalyticsHandler(analyticsSvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -280,6 +282,10 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Patch("/sync/{runId}", connH.FinishSyncRun)
 			r.Post("/scan", connH.ScanConnector)
 		})
+
+		// Analytics
+		r.Get("/v1/analytics/dashboard", analyticsH.GetDashboard)
+		r.Get("/v1/analytics/risk-trend", analyticsH.AssetRiskTrend)
 
 		// Task management
 		r.Get("/v1/tasks", taskH.ListTasks)
