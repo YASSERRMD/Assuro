@@ -116,6 +116,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	incSvc := service.NewIncidentService(s.db)
 	confSvc := service.NewConformityService(s.db)
 	agentSvc := service.NewAgentService(s.db)
+	agentRuntimeSvc := service.NewAgentRuntimeService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -132,6 +133,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	incH := NewIncidentHandler(incSvc, logger)
 	confH := NewConformityHandler(confSvc, logger)
 	agentH := NewAgentHandler(agentSvc, logger)
+	agentRtH := NewAgentRuntimeHandler(agentRuntimeSvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -239,6 +241,19 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Post("/permissions", agentH.GrantPermission)
 			r.Delete("/permissions/{permId}", agentH.RevokePermission)
 		})
+
+		// Agent runtime: behavior logging, guardrails, kill-switch, anomalies
+		r.Route("/v1/agents/{id}", func(r chi.Router) {
+			r.Post("/behavior", agentRtH.RecordBehavior)
+			r.Get("/behavior", agentRtH.ListBehaviorLogs)
+			r.Post("/kill", agentRtH.KillSwitch)
+			r.Get("/anomalies", agentRtH.ListAnomalies)
+			r.Post("/anomalies", agentRtH.RecordAnomaly)
+		})
+		r.Get("/v1/guardrails", agentRtH.ListGuardrailPolicies)
+		r.Post("/v1/guardrails", agentRtH.CreateGuardrailPolicy)
+		r.Patch("/v1/guardrails/{id}", agentRtH.ToggleGuardrailPolicy)
+		r.Post("/v1/anomalies/{id}/resolve", agentRtH.ResolveAnomaly)
 
 		// Conformity assessments and declarations
 		r.Get("/v1/conformity/assessments", confH.ListAssessments)
