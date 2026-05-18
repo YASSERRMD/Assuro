@@ -121,6 +121,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	shadowSvc := service.NewShadowAIService(s.db)
 	discoverySvc := service.NewDiscoveryService(s.db)
 	testingSvc := service.NewModelTestingService(s.db)
+	policySvc := service.NewPolicyService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -142,6 +143,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	shadowH := NewShadowAIHandler(shadowSvc, logger)
 	discoveryH := NewDiscoveryHandler(discoverySvc, logger)
 	testingH := NewModelTestingHandler(testingSvc, logger)
+	policyH := NewPolicyHandler(policySvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -269,6 +271,16 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Post("/sync", connH.StartSyncRun)
 			r.Patch("/sync/{runId}", connH.FinishSyncRun)
 			r.Post("/scan", connH.ScanConnector)
+		})
+
+		// Policy management
+		r.Get("/v1/policies", policyH.ListPolicies)
+		r.Post("/v1/policies", policyH.CreatePolicy)
+		r.Route("/v1/policies/{id}", func(r chi.Router) {
+			r.Patch("/status", policyH.UpdatePolicyStatus)
+			r.Patch("/content", policyH.UpdatePolicyContent)
+			r.Post("/attest", policyH.Attest)
+			r.Get("/attestations", policyH.ListAttestations)
 		})
 
 		// Model testing engine
