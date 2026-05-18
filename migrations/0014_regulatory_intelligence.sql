@@ -42,9 +42,11 @@ CREATE TABLE IF NOT EXISTS regulatory_impact_assessments (
     status         text NOT NULL DEFAULT 'open'
                        CHECK (status IN ('open','in_review','actioned','dismissed')),
     created_at     timestamp with time zone NOT NULL DEFAULT now(),
-    updated_at     timestamp with time zone NOT NULL DEFAULT now(),
-    UNIQUE (org_id, change_id, COALESCE(asset_id, '00000000-0000-0000-0000-000000000000'::uuid))
+    updated_at     timestamp with time zone NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ria_org_change_asset
+    ON regulatory_impact_assessments (org_id, change_id, COALESCE(asset_id, '00000000-0000-0000-0000-000000000000'::uuid));
 
 CREATE INDEX IF NOT EXISTS idx_impact_assessments_org
     ON regulatory_impact_assessments (org_id, status, created_at DESC);
@@ -57,6 +59,8 @@ CREATE OR REPLACE TRIGGER regulatory_impact_set_updated_at
 
 -- +goose Down
 DROP TRIGGER IF EXISTS regulatory_impact_set_updated_at ON regulatory_impact_assessments;
+DROP INDEX IF EXISTS idx_ria_org_change_asset;
+DROP INDEX IF EXISTS idx_impact_assessments_org;
 DROP TABLE IF EXISTS regulatory_impact_assessments;
 DROP TABLE IF EXISTS regulatory_changes;
 DROP TABLE IF EXISTS framework_requirement_versions;
