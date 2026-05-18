@@ -12,6 +12,7 @@ import (
 	"github.com/YASSERRMD/Assuro/internal/auth"
 	"github.com/YASSERRMD/Assuro/internal/config"
 	"github.com/YASSERRMD/Assuro/internal/jobs"
+	"github.com/YASSERRMD/Assuro/internal/notify"
 	"github.com/YASSERRMD/Assuro/internal/report"
 	"github.com/YASSERRMD/Assuro/internal/service"
 	"github.com/YASSERRMD/Assuro/internal/storage"
@@ -126,14 +127,18 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
 
-	// Background jobs (only available when a DB is wired in)
+	// Background jobs and notifications (only available when a DB is wired in)
 	var jobsH *JobsHandler
+	var notifH *NotificationHandler
 	if s.db != nil {
 		jobQueue := jobs.NewPostgresQueue(s.db.Pool())
 		jobRegistry := jobs.NewRegistry()
 		s.jobWorker = jobs.NewWorker(jobQueue, jobRegistry, jobs.WorkerConfig{}, logger)
 		s.jobSched = jobs.NewScheduler(jobQueue, logger)
 		jobsH = NewJobsHandler(jobQueue, logger)
+
+		notifSvc := notify.NewService(s.db.Pool(), jobQueue)
+		notifH = NewNotificationHandler(notifSvc, logger)
 	}
 
 	// Public auth routes
@@ -214,6 +219,15 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 				r.Get("/", jobsH.List)
 				r.Get("/{id}", jobsH.GetOne)
 			})
+		}
+
+		// Notifications and webhooks
+		if notifH != nil {
+			r.Get("/v1/notifications", notifH.ListNotifications)
+			r.Post("/v1/notifications/{id}/read", notifH.MarkRead)
+			r.Post("/v1/webhooks", notifH.CreateWebhook)
+			r.Get("/v1/webhooks", notifH.ListWebhooks)
+			r.Delete("/v1/webhooks/{id}", notifH.DeleteWebhook)
 		}
 	})
 
