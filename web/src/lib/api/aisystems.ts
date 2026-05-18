@@ -47,7 +47,7 @@ export async function computeRisk(id: string): Promise<RiskAssessment> {
 
 export async function getRisk(id: string): Promise<RiskAssessment | null> {
   try {
-    return typedFetch<RiskAssessment>(`/v1/assets/${id}/risk`)
+    return await typedFetch<RiskAssessment>(`/v1/assets/${id}/risk`)
   } catch {
     return null
   }
