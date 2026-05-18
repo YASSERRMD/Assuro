@@ -1,12 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { Shell } from '@/components/shell/Shell'
 import { Button } from '@/components/ui/Button'
 import { SkeletonRow } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import { listEvidence, uploadEvidence, type Evidence } from '@/lib/api/evidence'
-import { FileText, Upload } from 'lucide-react'
+import { getToken } from '@/lib/api'
+import { FileText, Upload, Download } from 'lucide-react'
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8081'
 
 function EmptyState() {
   return (
@@ -30,11 +33,26 @@ export default function EvidencePage() {
   const titleRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
-  const reload = () => {
+  const reload = useCallback(() => {
     listEvidence().then(setEvidence).finally(() => setLoading(false))
-  }
+  }, [])
 
-  useEffect(() => { reload() }, [])
+  useEffect(() => { reload() }, [reload])
+
+  const handleDownload = async (ev: Evidence): Promise<void> => {
+    const token = getToken()
+    const res = await fetch(`${API_BASE}/v1/evidence/${ev.id}/download`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) { toast('Download failed.', 'error'); return }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = ev.title
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const handleUpload = async (): Promise<void> => {
     const file = fileRef.current?.files?.[0]
@@ -113,6 +131,7 @@ export default function EvidencePage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Size</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Hash</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">File</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -127,6 +146,20 @@ export default function EvidencePage() {
                     {e.content_hash?.slice(0, 12) ?? '—'}…
                   </td>
                   <td className="px-4 py-3 text-gray-500">{new Date(e.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3">
+                    {e.file_key ? (
+                      <button
+                        onClick={() => handleDownload(e)}
+                        className="flex items-center gap-1 text-xs font-medium text-[#0f1f3d] hover:underline"
+                        title="Download file"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Download
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

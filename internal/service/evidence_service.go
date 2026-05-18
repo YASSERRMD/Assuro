@@ -134,6 +134,20 @@ func (s *EvidenceService) LinkEvidence(ctx context.Context, evidenceID, targetTy
 	return nil
 }
 
+// ListEvidenceByOrg returns all evidence for an organization.
+func (s *EvidenceService) ListEvidenceByOrg(ctx context.Context, orgID string) ([]qgen.Evidence, error) {
+	oID := parseUUID(orgID)
+	rows, err := s.queries.ListEvidenceByOrg(ctx, qgen.ListEvidenceByOrgParams{
+		OrgID:  oID,
+		Limit:  200,
+		Offset: 0,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list evidence by org: %w", err)
+	}
+	return rows, nil
+}
+
 // ListEvidenceByTarget returns evidence linked to a target.
 func (s *EvidenceService) ListEvidenceByTarget(ctx context.Context, targetType, targetID string) ([]qgen.Evidence, error) {
 	tID := parseUUID(targetID)

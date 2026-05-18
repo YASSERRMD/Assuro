@@ -2,7 +2,9 @@ import { typedFetch } from '@/lib/api'
 
 export interface Evidence {
   id: string
+  org_id: string
   title: string
+  file_key: string
   content_hash: string
   mime_type: string
   size_bytes: number

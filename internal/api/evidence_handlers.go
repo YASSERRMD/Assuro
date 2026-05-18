@@ -111,7 +111,7 @@ func (h *EvidenceHandler) Download(w http.ResponseWriter, r *http.Request) {
 
 // List handles GET /v1/evidence.
 func (h *EvidenceHandler) List(w http.ResponseWriter, r *http.Request) {
-	_, ok := auth.PrincipalFromContext(r.Context())
+	p, ok := auth.PrincipalFromContext(r.Context())
 	if !ok {
 		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
 		return
@@ -131,5 +131,12 @@ func (h *EvidenceHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, []any{})
+	// No filter - return all evidence for this org.
+	evidence, err := h.svc.ListEvidenceByOrg(r.Context(), p.OrgID)
+	if err != nil {
+		h.logger.Error("list org evidence failed", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "internal_error", "failed to list evidence")
+		return
+	}
+	writeJSON(w, http.StatusOK, evidence)
 }
