@@ -11,6 +11,7 @@ import (
 
 	"github.com/YASSERRMD/Assuro/internal/auth"
 	"github.com/YASSERRMD/Assuro/internal/config"
+	"github.com/YASSERRMD/Assuro/internal/jobs"
 	"github.com/YASSERRMD/Assuro/internal/report"
 	"github.com/YASSERRMD/Assuro/internal/service"
 	"github.com/YASSERRMD/Assuro/internal/storage"
@@ -25,11 +26,13 @@ const version = "v0.1.0"
 
 // Server holds the HTTP server and its dependencies.
 type Server struct {
-	logger  *zap.Logger
-	server  *http.Server
-	started time.Time
-	db      *store.DB
-	cfg     *config.Config
+	logger    *zap.Logger
+	server    *http.Server
+	started   time.Time
+	db        *store.DB
+	cfg       *config.Config
+	jobWorker *jobs.Worker
+	jobSched  *jobs.Scheduler
 }
 
 // ServerOption configures the server.
@@ -123,6 +126,16 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
 
+	// Background jobs (only available when a DB is wired in)
+	var jobsH *JobsHandler
+	if s.db != nil {
+		jobQueue := jobs.NewPostgresQueue(s.db.Pool())
+		jobRegistry := jobs.NewRegistry()
+		s.jobWorker = jobs.NewWorker(jobQueue, jobRegistry, jobs.WorkerConfig{}, logger)
+		s.jobSched = jobs.NewScheduler(jobQueue, logger)
+		jobsH = NewJobsHandler(jobQueue, logger)
+	}
+
 	// Public auth routes
 	r.Post("/v1/auth/signup", authH.SignUp)
 	r.Post("/v1/auth/login", authH.Login)
@@ -193,6 +206,15 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 
 		// Audit log (owner/admin only - enforced inside handler)
 		r.Get("/v1/audit-log", auditH.List)
+
+		// Admin: background job management (requires DB)
+		if jobsH != nil {
+			r.Route("/v1/admin/jobs", func(r chi.Router) {
+				r.Post("/", jobsH.Enqueue)
+				r.Get("/", jobsH.List)
+				r.Get("/{id}", jobsH.GetOne)
+			})
+		}
 	})
 
 	s.server = &http.Server{
@@ -207,6 +229,16 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 func (s *Server) Start() error {
 	s.logger.Info("starting http server", zap.String("addr", s.server.Addr))
 
+	bgCtx, bgCancel := context.WithCancel(context.Background())
+	defer bgCancel()
+
+	if s.jobWorker != nil {
+		s.jobWorker.Start(bgCtx)
+	}
+	if s.jobSched != nil {
+		s.jobSched.Start(bgCtx)
+	}
+
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
@@ -218,6 +250,14 @@ func (s *Server) Start() error {
 
 	<-stop
 	s.logger.Info("shutting down server")
+
+	bgCancel()
+	if s.jobWorker != nil {
+		s.jobWorker.Stop()
+	}
+	if s.jobSched != nil {
+		s.jobSched.Stop()
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
