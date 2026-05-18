@@ -117,6 +117,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	confSvc := service.NewConformityService(s.db)
 	agentSvc := service.NewAgentService(s.db)
 	agentRuntimeSvc := service.NewAgentRuntimeService(s.db)
+	connSvc := service.NewConnectorService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -134,6 +135,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	confH := NewConformityHandler(confSvc, logger)
 	agentH := NewAgentHandler(agentSvc, logger)
 	agentRtH := NewAgentRuntimeHandler(agentRuntimeSvc, logger)
+	connH := NewConnectorHandler(connSvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -254,6 +256,17 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 		r.Post("/v1/guardrails", agentRtH.CreateGuardrailPolicy)
 		r.Patch("/v1/guardrails/{id}", agentRtH.ToggleGuardrailPolicy)
 		r.Post("/v1/anomalies/{id}/resolve", agentRtH.ResolveAnomaly)
+
+		// Connectors and sync jobs
+		r.Get("/v1/connectors", connH.ListConnectors)
+		r.Post("/v1/connectors", connH.CreateConnector)
+		r.Route("/v1/connectors/{id}", func(r chi.Router) {
+			r.Patch("/", connH.UpdateConnectorStatus)
+			r.Delete("/", connH.DeleteConnector)
+			r.Get("/sync", connH.ListSyncRuns)
+			r.Post("/sync", connH.StartSyncRun)
+			r.Patch("/sync/{runId}", connH.FinishSyncRun)
+		})
 
 		// Conformity assessments and declarations
 		r.Get("/v1/conformity/assessments", confH.ListAssessments)
