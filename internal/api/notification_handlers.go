@@ -142,3 +142,118 @@ func (h *NotificationHandler) DeleteWebhook(w http.ResponseWriter, r *http.Reque
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// WebhookDeliveryLogs handles GET /v1/webhooks/{id}/deliveries.
+func (h *NotificationHandler) WebhookDeliveryLogs(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
+		return
+	}
+	d := notify.NewWebhookDispatcher(h.svc.Pool())
+	logs, err := d.ListDeliveryLogs(r.Context(), chi.URLParam(r, "id"), p.OrgID, intQuery(r, "limit", 50))
+	if err != nil {
+		h.logger.Error("webhook delivery logs", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "internal_error", "failed to list delivery logs")
+		return
+	}
+	writeJSON(w, http.StatusOK, logs)
+}
+
+// MarkAllRead handles POST /v1/notifications/read-all.
+func (h *NotificationHandler) MarkAllRead(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
+		return
+	}
+	_, err := h.svc.Pool().Exec(r.Context(),
+		`UPDATE notifications SET read_at=NOW() WHERE user_id=$1 AND read_at IS NULL`,
+		p.UserID,
+	)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "internal_error", "failed to mark all read")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// UnreadCount handles GET /v1/notifications/unread-count.
+func (h *NotificationHandler) UnreadCount(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
+		return
+	}
+	var count int
+	_ = h.svc.Pool().QueryRow(r.Context(),
+		`SELECT COUNT(*) FROM notifications WHERE user_id=$1 AND read_at IS NULL`,
+		p.UserID,
+	).Scan(&count)
+	writeJSON(w, http.StatusOK, map[string]int{"unread": count})
+}
+
+// GetPreferences handles GET /v1/notifications/preferences.
+func (h *NotificationHandler) GetPreferences(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
+		return
+	}
+	rows, err := h.svc.Pool().Query(r.Context(),
+		`SELECT category, in_app, email FROM notification_prefs WHERE user_id=$1 ORDER BY category`,
+		p.UserID,
+	)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, "internal_error", "failed to get preferences")
+		return
+	}
+	defer rows.Close()
+	type pref struct {
+		Category string `json:"category"`
+		InApp    bool   `json:"in_app"`
+		Email    bool   `json:"email"`
+	}
+	var out []pref
+	for rows.Next() {
+		var pr pref
+		if err := rows.Scan(&pr.Category, &pr.InApp, &pr.Email); err == nil {
+			out = append(out, pr)
+		}
+	}
+	if out == nil {
+		out = []pref{}
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// SetPreferences handles PUT /v1/notifications/preferences.
+func (h *NotificationHandler) SetPreferences(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
+		return
+	}
+	var prefs []struct {
+		Category string `json:"category"`
+		InApp    bool   `json:"in_app"`
+		Email    bool   `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&prefs); err != nil {
+		WriteError(w, http.StatusBadRequest, "invalid_request", "invalid preferences payload")
+		return
+	}
+	for _, pr := range prefs {
+		_, err := h.svc.Pool().Exec(r.Context(),
+			`INSERT INTO notification_prefs (user_id, category, in_app, email)
+			 VALUES ($1, $2, $3, $4)
+			 ON CONFLICT (user_id, category) DO UPDATE SET in_app=$3, email=$4`,
+			p.UserID, pr.Category, pr.InApp, pr.Email,
+		)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, "internal_error", "failed to save preferences")
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
