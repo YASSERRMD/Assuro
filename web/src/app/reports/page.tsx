@@ -86,6 +86,15 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {selectedSystem?.latest_risk_tier === 'unknown' && !report && (
+        <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-amber-100 bg-amber-50 px-4 py-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+          <p className="text-sm text-amber-800">
+            This system has no risk assessment yet. Go to <strong>AI Systems → {selectedSystem.name}</strong> and run a risk assessment before generating a report.
+          </p>
+        </div>
+      )}
+
       {error && (
         <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-red-100 bg-red-50 px-4 py-3">
           <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />
