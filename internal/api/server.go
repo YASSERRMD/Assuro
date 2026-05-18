@@ -108,6 +108,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	riskSvc := service.NewRiskService(s.db, aiSvc)
 	fwSvc := service.NewFrameworkService(s.db)
 	regSvc := service.NewRegulatoryService(s.db)
+	regIntelSvc := service.NewRegulatoryIntelligenceService(s.db)
 	assessSvc := service.NewAssessmentService(s.db, fwSvc)
 	blobStore := storage.NewLocalStore("data/evidence")
 	evidSvc := service.NewEvidenceService(s.db, blobStore)
@@ -122,6 +123,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	riskH := NewRiskHandler(riskSvc, logger)
 	fwH := NewFrameworkHandler(fwSvc, logger)
 	regH := NewRegulatoryHandler(regSvc, logger)
+	regIntelH := NewRegulatoryIntelligenceHandler(regIntelSvc, logger)
 	assessH := NewAssessmentHandler(assessSvc, logger)
 	evidH := NewEvidenceHandler(evidSvc, logger)
 	monH := NewMonitoringHandler(monSvc, logger)
@@ -199,6 +201,13 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 		// Regulatory content library
 		r.Get("/v1/regulatory/requirements", regH.ListRequirements)
 		r.Get("/v1/regulatory/controls", regH.ListControls)
+
+		// Regulatory intelligence: change feed and impact mapping
+		r.Get("/v1/regulatory/changes", regIntelH.ListChanges)
+		r.Post("/v1/regulatory/changes", regIntelH.AddChange)
+		r.Get("/v1/regulatory/impacts", regIntelH.ListImpacts)
+		r.Post("/v1/regulatory/impacts", regIntelH.CreateImpact)
+		r.Patch("/v1/regulatory/impacts/{id}", regIntelH.UpdateImpactStatus)
 
 		// Assessments
 		r.Post("/v1/assessments", assessH.Create)
