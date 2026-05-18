@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Shell } from '@/components/shell/Shell'
 import { useToast } from '@/components/ui/Toast'
-import { listRoles, createRole, deleteRole, listRoleUsers, type Role, type RoleUser } from '@/lib/api/rbac'
+import { listRoles, createRole, deleteRole, listRolePermissions, type Role, type RolePermission } from '@/lib/api/rbac'
 import { Users, Plus, X, Trash2, ChevronDown, ChevronRight, Shield, Key } from 'lucide-react'
 
 function CreateRoleModal({ onClose, onCreated }: {
@@ -19,7 +19,7 @@ function CreateRoleModal({ onClose, onCreated }: {
     e.preventDefault()
     setSubmitting(true)
     try {
-      const role = await createRole({ name, description, permissions: [] })
+      const role = await createRole({ name, description })
       toast('Role created.', 'success')
       onCreated(role)
     } catch {
@@ -57,22 +57,14 @@ function CreateRoleModal({ onClose, onCreated }: {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What can this role do?"
               rows={3}
-              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#1B2A4A] focus:ring-2 focus:ring-[#1B2A4A]/10"
+              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#1B2A4A] focus:ring-2 focus:ring-[rgba(27,42,74,0.08)]"
             />
           </div>
           <div className="flex justify-end gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition"
-            >
+            <button type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition disabled:opacity-60"
-            >
+            <button type="submit" disabled={submitting} className="rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition disabled:opacity-60">
               {submitting ? 'Creating...' : 'Create Role'}
             </button>
           </div>
@@ -84,18 +76,19 @@ function CreateRoleModal({ onClose, onCreated }: {
 
 function RoleRow({ role, onDelete }: { role: Role; onDelete: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false)
-  const [users, setUsers] = useState<RoleUser[]>([])
-  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [permissions, setPermissions] = useState<RolePermission[]>([])
+  const [loading, setLoading] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
   const toggleExpand = async (): Promise<void> => {
-    if (!expanded && users.length === 0) {
-      setLoadingUsers(true)
-      listRoleUsers(role.id)
-        .then(setUsers)
-        .catch(() => setUsers([]))
-        .finally(() => setLoadingUsers(false))
+    if (!expanded && !loaded) {
+      setLoading(true)
+      listRolePermissions(role.id)
+        .then((p) => { setPermissions(p); setLoaded(true) })
+        .catch(() => setLoaded(true))
+        .finally(() => setLoading(false))
     }
-    setExpanded(!expanded)
+    setExpanded((v) => !v)
   }
 
   return (
@@ -117,12 +110,13 @@ function RoleRow({ role, onDelete }: { role: Role; onDelete: (id: string) => voi
           )}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-400 tabular-nums">
-            {role.permissions.length} permission{role.permissions.length !== 1 ? 's' : ''}
+          <span className="text-xs text-gray-400">
+            {new Date(role.created_at).toLocaleDateString()}
           </span>
           <button
             onClick={() => onDelete(role.id)}
             className="rounded-md p-1 text-red-400 hover:bg-red-50 hover:text-red-600 transition"
+            title="Delete role"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -130,51 +124,31 @@ function RoleRow({ role, onDelete }: { role: Role; onDelete: (id: string) => voi
       </div>
 
       {expanded && (
-        <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 space-y-3">
-          {role.permissions.length > 0 && (
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1">
-                <Key className="h-3 w-3" />Permissions
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {role.permissions.map((perm) => (
-                  <span
-                    key={perm}
-                    className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-[10px] font-semibold text-indigo-700"
-                  >
-                    {perm}
-                  </span>
-                ))}
-              </div>
+        <div className="border-t border-gray-100 bg-gray-50 px-4 py-3">
+          <p className="mb-2 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+            <Key className="h-3 w-3" />Permissions
+          </p>
+          {loading && (
+            <div className="space-y-1">
+              <div className="shimmer h-4 rounded w-40" />
+              <div className="shimmer h-4 rounded w-32" />
             </div>
           )}
-
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1">
-              <Users className="h-3 w-3" />Assigned Users
-            </p>
-            {loadingUsers && (
-              <div className="space-y-1">
-                <div className="shimmer h-4 rounded w-40" />
-                <div className="shimmer h-4 rounded w-32" />
-              </div>
-            )}
-            {!loadingUsers && users.length === 0 && (
-              <p className="text-xs text-gray-400">No users assigned to this role.</p>
-            )}
-            {!loadingUsers && users.length > 0 && (
-              <div className="space-y-1.5">
-                {users.map((u) => (
-                  <div key={u.user_id} className="flex items-center justify-between">
-                    <span className="text-xs text-gray-700">{u.email}</span>
-                    <span className="text-[10px] text-gray-400">
-                      Assigned {new Date(u.assigned_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {!loading && permissions.length === 0 && (
+            <p className="text-xs text-gray-400">No permissions assigned to this role.</p>
+          )}
+          {!loading && permissions.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {permissions.map((p) => (
+                <span
+                  key={p.permission}
+                  className="inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-[10px] font-semibold text-indigo-700"
+                >
+                  {p.permission}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -186,7 +160,7 @@ export default function RBACPage() {
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
-  const [tab, setTab] = useState<'roles' | 'users'>('roles')
+  const [tab, setTab] = useState<'roles' | 'matrix'>('roles')
 
   useEffect(() => {
     listRoles()
@@ -210,8 +184,8 @@ export default function RBACPage() {
     <Shell>
       <div className="page-header">
         <div>
-          <h1 className="page-title">RBAC</h1>
-          <p className="page-subtitle">Manage roles, permissions, and user assignments</p>
+          <h1 className="page-title">Access Control</h1>
+          <p className="page-subtitle">Manage roles and permission assignments</p>
         </div>
         {tab === 'roles' && (
           <button
@@ -224,13 +198,9 @@ export default function RBACPage() {
       </div>
 
       <nav className="tab-nav mb-5">
-        {(['roles', 'users'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`tab-item capitalize ${tab === t ? 'active' : ''}`}
-          >
-            {t === 'roles' ? 'Roles' : 'User Assignments'}
+        {(['roles', 'matrix'] as const).map((t) => (
+          <button key={t} onClick={() => setTab(t)} className={`tab-item capitalize ${tab === t ? 'active' : ''}`}>
+            {t === 'roles' ? 'Roles' : 'Permission Matrix'}
           </button>
         ))}
       </nav>
@@ -276,15 +246,13 @@ export default function RBACPage() {
         </>
       )}
 
-      {!loading && tab === 'users' && (
+      {!loading && tab === 'matrix' && (
         <>
           {roles.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">
-                <Users className="h-6 w-6 text-gray-400" />
-              </div>
+              <div className="empty-icon"><Users className="h-6 w-6 text-gray-400" /></div>
               <p className="empty-title">No roles yet</p>
-              <p className="empty-body">Create roles first, then expand them to view user assignments.</p>
+              <p className="empty-body">Create roles first, then expand them to view permissions.</p>
             </div>
           ) : (
             <div className="card overflow-hidden animate-in">
@@ -293,7 +261,7 @@ export default function RBACPage() {
                   <tr>
                     <th>Role</th>
                     <th>Description</th>
-                    <th className="text-right">Permissions</th>
+                    <th>Created</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -307,28 +275,14 @@ export default function RBACPage() {
                           <span className="font-medium text-gray-900">{role.name}</span>
                         </div>
                       </td>
-                      <td className="text-gray-500 text-xs">{role.description || '-'}</td>
-                      <td className="text-right">
-                        <div className="flex flex-wrap justify-end gap-1">
-                          {role.permissions.slice(0, 3).map((p) => (
-                            <span key={p} className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
-                              {p}
-                            </span>
-                          ))}
-                          {role.permissions.length > 3 && (
-                            <span className="text-xs text-gray-400">+{role.permissions.length - 3} more</span>
-                          )}
-                          {role.permissions.length === 0 && (
-                            <span className="text-xs text-gray-400">No permissions</span>
-                          )}
-                        </div>
-                      </td>
+                      <td className="text-gray-500 text-xs max-w-xs truncate">{role.description || '—'}</td>
+                      <td className="text-xs text-gray-400">{new Date(role.created_at).toLocaleDateString()}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               <p className="px-4 py-3 text-xs text-gray-400 border-t border-gray-50">
-                Expand a role in the Roles tab to see and manage individual user assignments.
+                Click a role chevron in the Roles tab to expand its permissions.
               </p>
             </div>
           )}
