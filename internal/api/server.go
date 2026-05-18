@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/YASSERRMD/Assuro/internal/aiassist"
 	"github.com/YASSERRMD/Assuro/internal/auth"
 	"github.com/YASSERRMD/Assuro/internal/config"
 	"github.com/YASSERRMD/Assuro/internal/jobs"
@@ -127,6 +128,13 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
 
+	// AI assist provider (always available, defaults to null)
+	aiProvider, _ := aiassist.Build(aiassist.ConfigFromEnv())
+	var aiAssistH *AIAssistHandler
+	if s.db != nil {
+		aiAssistH = NewAIAssistHandler(aiProvider, s.db.Pool(), logger)
+	}
+
 	// Background jobs and notifications (only available when a DB is wired in)
 	var jobsH *JobsHandler
 	var notifH *NotificationHandler
@@ -219,6 +227,12 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 				r.Get("/", jobsH.List)
 				r.Get("/{id}", jobsH.GetOne)
 			})
+		}
+
+		// AI assist
+		if aiAssistH != nil {
+			r.Get("/v1/ai-assist/status", aiAssistH.Status)
+			r.Get("/v1/ai-assist/usage", aiAssistH.Usage)
 		}
 
 		// Notifications and webhooks
