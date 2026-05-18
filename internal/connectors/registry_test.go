@@ -9,7 +9,7 @@ import (
 func TestRegistryTypes(t *testing.T) {
 	r := NewRegistry()
 	types := r.Types()
-	want := map[string]bool{"aws_bedrock": true, "azure_ai": true, "gcp_vertex": true}
+	want := map[string]bool{"aws_bedrock": true, "azure_ai": true, "gcp_vertex": true, "github": true, "huggingface": true}
 	for _, tp := range types {
 		if !want[tp] {
 			t.Errorf("unexpected type: %s", tp)
