@@ -119,6 +119,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	agentRuntimeSvc := service.NewAgentRuntimeService(s.db)
 	connSvc := service.NewConnectorService(s.db)
 	shadowSvc := service.NewShadowAIService(s.db)
+	discoverySvc := service.NewDiscoveryService(s.db)
 	reportBuilder := report.NewBuilder()
 
 	// Instantiate all handlers
@@ -138,6 +139,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	agentRtH := NewAgentRuntimeHandler(agentRuntimeSvc, logger)
 	connH := NewConnectorHandler(connSvc, logger)
 	shadowH := NewShadowAIHandler(shadowSvc, logger)
+	discoveryH := NewDiscoveryHandler(discoverySvc, logger)
 	statsH := NewStatsHandler(s.db, logger)
 	reportH := NewReportHandler(reportBuilder, logger)
 	auditH := NewAuditHandler(s.db, logger)
@@ -266,6 +268,13 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 			r.Patch("/sync/{runId}", connH.FinishSyncRun)
 			r.Post("/scan", connH.ScanConnector)
 		})
+
+		// Discovery inbox and reconciliation
+		r.Get("/v1/discovery", discoveryH.ListInbox)
+		r.Post("/v1/discovery", discoveryH.Ingest)
+		r.Post("/v1/discovery/dedup", discoveryH.DeduplicateShadow)
+		r.Post("/v1/discovery/{id}/reconcile", discoveryH.Reconcile)
+		r.Post("/v1/discovery/{id}/dismiss", discoveryH.Dismiss)
 
 		// Shadow AI detection
 		r.Get("/v1/shadow-ai", shadowH.ListFindings)
