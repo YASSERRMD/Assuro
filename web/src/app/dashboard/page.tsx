@@ -2,9 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { Shell } from '@/components/shell/Shell'
-import { Gauge } from '@/components/charts/Gauge'
-import { StatCard } from '@/components/ui/StatCard'
-import { SkeletonStatCard } from '@/components/ui/Skeleton'
 import { typedFetch } from '@/lib/api'
 import { Cpu, AlertTriangle, ClipboardCheck, ShieldAlert } from 'lucide-react'
 
@@ -14,6 +11,14 @@ interface DashboardStats {
   open_incidents: number
   completed_assessments: number
   framework_coverage: Array<{ framework_key: string; coverage_pct: number }>
+}
+
+const tierColors: Record<string, { bar: string; text: string }> = {
+  unacceptable: { bar: 'bg-gray-900', text: 'text-gray-900' },
+  high: { bar: 'bg-red-500', text: 'text-red-600' },
+  limited: { bar: 'bg-orange-400', text: 'text-orange-600' },
+  minimal: { bar: 'bg-emerald-500', text: 'text-emerald-600' },
+  unknown: { bar: 'bg-gray-300', text: 'text-gray-500' },
 }
 
 export default function DashboardPage() {
@@ -31,109 +36,165 @@ export default function DashboardPage() {
     ? (stats.by_risk_tier['high'] ?? 0) + (stats.by_risk_tier['unacceptable'] ?? 0)
     : 0
 
+  const totalSystems = stats?.total_ai_systems ?? 0
+
+  const statCards = [
+    {
+      label: 'AI Systems',
+      value: loading ? null : totalSystems,
+      icon: Cpu,
+      accent: 'bg-[#1B2A4A]/8 text-[#1B2A4A]',
+      sub: 'registered',
+    },
+    {
+      label: 'High / Unacceptable Risk',
+      value: loading ? null : highRisk,
+      icon: ShieldAlert,
+      accent: 'bg-orange-50 text-orange-600',
+      sub: 'require review',
+    },
+    {
+      label: 'Open Incidents',
+      value: loading ? null : (stats?.open_incidents ?? 0),
+      icon: AlertTriangle,
+      accent: 'bg-red-50 text-red-600',
+      sub: 'active now',
+    },
+    {
+      label: 'Completed Assessments',
+      value: loading ? null : (stats?.completed_assessments ?? 0),
+      icon: ClipboardCheck,
+      accent: 'bg-emerald-50 text-emerald-600',
+      sub: 'assessments done',
+    },
+  ]
+
   return (
     <Shell>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">AI governance posture at a glance</p>
-      </div>
-
-      {/* Stat cards */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {loading ? (
-          <>
-            <SkeletonStatCard />
-            <SkeletonStatCard />
-            <SkeletonStatCard />
-            <SkeletonStatCard />
-          </>
-        ) : (
-          <>
-            <StatCard
-              label="AI Systems"
-              value={stats?.total_ai_systems ?? 0}
-              icon={Cpu}
-              accent="navy"
-              subtext="registered systems"
-            />
-            <StatCard
-              label="High / Unacceptable Risk"
-              value={highRisk}
-              icon={ShieldAlert}
-              accent="orange"
-              subtext="require immediate review"
-            />
-            <StatCard
-              label="Open Incidents"
-              value={stats?.open_incidents ?? 0}
-              icon={AlertTriangle}
-              accent="red"
-              subtext="active incidents"
-            />
-            <StatCard
-              label="Completed Assessments"
-              value={stats?.completed_assessments ?? 0}
-              icon={ClipboardCheck}
-              accent="green"
-              subtext="assessments done"
-            />
-          </>
-        )}
-      </div>
-
-      {/* Framework coverage */}
-      <div className="mt-8">
-        <h2 className="text-base font-semibold text-gray-900">Framework Coverage</h2>
-        <p className="mt-0.5 text-sm text-gray-500">Percentage of controls addressed per framework</p>
-        <div className="mt-4 flex flex-wrap gap-6">
-          {loading && (
-            <div className="flex gap-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex flex-col items-center gap-2">
-                  <div className="h-20 w-20 animate-pulse rounded-full bg-gray-200" />
-                  <div className="h-3 w-16 animate-pulse rounded bg-gray-200" />
-                </div>
-              ))}
-            </div>
-          )}
-          {!loading && (stats?.framework_coverage ?? []).length === 0 && (
-            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-gray-200 bg-white px-10 py-8 text-center">
-              <svg className="h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-sm text-gray-400">No framework coverage data yet. Complete an assessment to see coverage.</p>
-            </div>
-          )}
-          {(stats?.framework_coverage ?? []).map((c) => (
-            <Gauge key={c.framework_key} label={c.framework_key} pct={c.coverage_pct} />
-          ))}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-subtitle">AI governance posture at a glance</p>
         </div>
+        <a
+          href="/ai-systems/new"
+          className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
+        >
+          + Register AI System
+        </a>
       </div>
 
-      {/* Risk breakdown */}
-      {!loading && stats && (
-        <div className="mt-8">
-          <h2 className="text-base font-semibold text-gray-900">Risk Tier Breakdown</h2>
-          <div className="mt-3 flex flex-wrap gap-3">
-            {(['unacceptable', 'high', 'limited', 'minimal', 'unknown'] as const).map((tier) => {
-              const count = stats.by_risk_tier[tier] ?? 0
-              const tierStyles: Record<string, string> = {
-                unacceptable: 'bg-black text-white',
-                high: 'bg-red-100 text-red-800',
-                limited: 'bg-orange-100 text-orange-800',
-                minimal: 'bg-emerald-100 text-emerald-800',
-                unknown: 'bg-gray-100 text-gray-600',
-              }
-              return (
-                <div key={tier} className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ${tierStyles[tier]}`}>
-                  <span className="capitalize">{tier}</span>
-                  <span className="rounded-full bg-white/20 px-1.5 py-0.5 font-bold">{count}</span>
+      {/* Stat grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-in">
+        {statCards.map((card) => (
+          <div key={card.label} className="stat-card">
+            <div className="flex items-start justify-between mb-3">
+              <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${card.accent}`}>
+                <card.icon className="h-4 w-4" />
+              </div>
+            </div>
+            {card.value === null ? (
+              <div className="shimmer h-8 rounded-lg mb-1" />
+            ) : (
+              <div className="stat-value">{card.value}</div>
+            )}
+            <div className="stat-label">{card.label}</div>
+            <div className="mt-0.5 text-xs text-gray-400">{card.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Framework Coverage */}
+        <div className="card animate-in">
+          <div className="card-header">
+            <h2 className="text-sm font-semibold text-gray-700">Framework Coverage</h2>
+            <span className="text-xs text-gray-400">% of controls addressed</span>
+          </div>
+          <div className="p-4 space-y-4">
+            {loading && (
+              <>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="space-y-1.5">
+                    <div className="shimmer h-4 rounded w-32" />
+                    <div className="shimmer h-2.5 rounded-full w-full" />
+                  </div>
+                ))}
+              </>
+            )}
+            {!loading && (stats?.framework_coverage ?? []).length === 0 && (
+              <div className="empty-state py-8">
+                <div className="empty-icon">
+                  <ClipboardCheck className="h-5 w-5 text-gray-400" />
                 </div>
-              )
-            })}
+                <p className="empty-title">No coverage data</p>
+                <p className="empty-body">Complete an assessment to see framework coverage.</p>
+              </div>
+            )}
+            {(stats?.framework_coverage ?? []).map((c) => (
+              <div key={c.framework_key}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-medium text-gray-700 uppercase tracking-wide">{c.framework_key.replace(/_/g, ' ')}</span>
+                  <span className="text-xs font-semibold text-gray-900">{c.coverage_pct}%</span>
+                </div>
+                <div className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${c.coverage_pct}%`,
+                      background: c.coverage_pct >= 75
+                        ? '#10b981'
+                        : c.coverage_pct >= 50
+                        ? '#3b82f6'
+                        : '#f59e0b',
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      )}
+
+        {/* Risk Tier Breakdown */}
+        <div className="card animate-in">
+          <div className="card-header">
+            <h2 className="text-sm font-semibold text-gray-700">Risk Tier Breakdown</h2>
+            <span className="text-xs text-gray-400">systems by tier</span>
+          </div>
+          <div className="p-4 space-y-3">
+            {loading && (
+              <>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="shimmer h-4 rounded w-20" />
+                    <div className="shimmer h-4 rounded-full flex-1" />
+                    <div className="shimmer h-4 rounded w-6" />
+                  </div>
+                ))}
+              </>
+            )}
+            {!loading && stats && (
+              (['unacceptable', 'high', 'limited', 'minimal', 'unknown'] as const).map((tier) => {
+                const count = stats.by_risk_tier[tier] ?? 0
+                const pct = totalSystems > 0 ? Math.round((count / totalSystems) * 100) : 0
+                const colors = tierColors[tier]
+                return (
+                  <div key={tier} className="flex items-center gap-3">
+                    <span className="w-24 text-xs font-medium text-gray-600 capitalize text-right">{tier}</span>
+                    <div className="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${colors.bar}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className={`w-6 text-xs font-bold text-right tabular-nums ${colors.text}`}>{count}</span>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
+      </div>
     </Shell>
   )
 }

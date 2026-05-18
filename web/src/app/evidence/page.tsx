@@ -2,27 +2,27 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Shell } from '@/components/shell/Shell'
-import { Button } from '@/components/ui/Button'
-import { SkeletonRow } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import { listEvidence, uploadEvidence, type Evidence } from '@/lib/api/evidence'
 import { getToken } from '@/lib/api'
-import { FileText, Upload, Download } from 'lucide-react'
+import { FileText, Upload, Download, File, FileImage, Sheet } from 'lucide-react'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8081'
 
-function EmptyState() {
-  return (
-    <div className="mt-6 flex flex-col items-center gap-4 rounded-xl border border-dashed border-gray-200 bg-white py-12 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-50">
-        <FileText className="h-7 w-7 text-gray-300" />
-      </div>
-      <div>
-        <p className="text-base font-semibold text-gray-700">No evidence uploaded yet</p>
-        <p className="mt-1 text-sm text-gray-400">Upload documents, reports, or audit files above to build your evidence library.</p>
-      </div>
-    </div>
-  )
+function getFileIcon(mimeType: string) {
+  if (mimeType?.includes('image')) return FileImage
+  if (mimeType?.includes('spreadsheet') || mimeType?.includes('csv')) return Sheet
+  return File
+}
+
+function getTypeLabel(mimeType: string) {
+  if (!mimeType) return 'Unknown'
+  if (mimeType.includes('pdf')) return 'PDF'
+  if (mimeType.includes('word') || mimeType.includes('docx')) return 'Word'
+  if (mimeType.includes('spreadsheet') || mimeType.includes('csv')) return 'CSV'
+  if (mimeType.includes('image')) return 'Image'
+  if (mimeType.includes('text')) return 'Text'
+  return mimeType.split('/')[1]?.toUpperCase() ?? 'File'
 }
 
 export default function EvidencePage() {
@@ -79,89 +79,126 @@ export default function EvidencePage() {
 
   return (
     <Shell>
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Evidence Library</h1>
-        <p className="mt-0.5 text-sm text-gray-500">Manage compliance documents and audit evidence</p>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Evidence Library</h1>
+          <p className="page-subtitle">Manage compliance documents and audit evidence</p>
+        </div>
       </div>
 
       {/* Upload panel */}
-      <div className="mt-5 rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-gray-700">Upload Evidence</h2>
-        <p className="mt-0.5 text-xs text-gray-400">Supports PDF, DOCX, XLSX, images and other document formats</p>
-        <div className="mt-3 flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-gray-600">Document title</label>
+      <div className="card mb-4 animate-in">
+        <div className="card-header">
+          <h2 className="text-sm font-semibold text-gray-700">Upload Evidence</h2>
+          <span className="text-xs text-gray-400">PDF, DOCX, XLSX, images supported</span>
+        </div>
+        <div className="p-4 flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+            <label className="label">Document title</label>
             <input
               ref={titleRef}
               type="text"
               placeholder="e.g. EU AI Act Risk Assessment Q2 2025"
-              className="w-72 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#0f1f3d] focus:ring-1 focus:ring-[#0f1f3d]/30"
+              className="input-base"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-gray-600">File</label>
+            <label className="label">File</label>
             <input
               ref={fileRef}
               type="file"
               className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm file:mr-3 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs file:font-medium"
             />
           </div>
-          <Button onClick={handleUpload} disabled={uploading} className="gap-2">
+          <button
+            onClick={handleUpload}
+            disabled={uploading}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition disabled:opacity-60"
+          >
             <Upload className="h-4 w-4" />
-            {uploading ? 'Uploading…' : 'Upload'}
-          </Button>
+            {uploading ? 'Uploading...' : 'Upload'}
+          </button>
         </div>
       </div>
 
       {loading && (
-        <div className="mt-4">
-          {Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)}
+        <div className="card animate-in overflow-hidden">
+          <div className="divide-y divide-gray-50">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3">
+                <div className="shimmer h-8 w-8 rounded-lg" />
+                <div className="shimmer h-4 rounded w-48" />
+                <div className="shimmer h-4 rounded w-16 ml-auto" />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {!loading && evidence.length === 0 && <EmptyState />}
+      {!loading && evidence.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">
+            <FileText className="h-6 w-6 text-gray-400" />
+          </div>
+          <p className="empty-title">No evidence uploaded yet</p>
+          <p className="empty-body">Upload documents, reports, or audit files to build your evidence library.</p>
+        </div>
+      )}
 
       {!loading && evidence.length > 0 && (
-        <div className="mt-4 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-          <table className="w-full border-collapse text-sm">
+        <div className="card animate-in overflow-hidden">
+          <table className="data-table">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Title</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Size</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Hash</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">File</th>
+              <tr>
+                <th>Filename</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Content Hash</th>
+                <th>Upload Date</th>
+                <th className="text-right">Download</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
-              {evidence.map((e) => (
-                <tr key={e.id} className="transition-colors hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-800">{e.title}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500">{e.mime_type || '—'}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500">
-                    {e.size_bytes ? `${(e.size_bytes / 1024).toFixed(1)} KB` : '—'}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-400">
-                    {e.content_hash?.slice(0, 12) ?? '—'}…
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{new Date(e.created_at).toLocaleDateString()}</td>
-                  <td className="px-4 py-3">
-                    {e.file_key ? (
-                      <button
-                        onClick={() => handleDownload(e)}
-                        className="flex items-center gap-1 text-xs font-medium text-[#0f1f3d] hover:underline"
-                        title="Download file"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        Download
-                      </button>
-                    ) : (
-                      <span className="text-xs text-gray-300">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+            <tbody>
+              {evidence.map((e) => {
+                const IconComp = getFileIcon(e.mime_type)
+                return (
+                  <tr key={e.id}>
+                    <td>
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 flex-shrink-0">
+                          <IconComp className="h-4 w-4 text-gray-500" />
+                        </div>
+                        <span className="font-medium text-gray-800 truncate max-w-xs">{e.title}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600">
+                        {getTypeLabel(e.mime_type)}
+                      </span>
+                    </td>
+                    <td className="text-xs text-gray-500">
+                      {e.size_bytes ? `${(e.size_bytes / 1024).toFixed(1)} KB` : '-'}
+                    </td>
+                    <td className="font-mono text-xs text-gray-400">
+                      {e.content_hash?.slice(0, 12) ?? '-'}...
+                    </td>
+                    <td className="text-xs text-gray-500">{new Date(e.created_at).toLocaleDateString()}</td>
+                    <td className="text-right">
+                      {e.file_key ? (
+                        <button
+                          onClick={() => handleDownload(e)}
+                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-[#1B2A4A] hover:bg-[#1B2A4A]/5 transition"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-300">-</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

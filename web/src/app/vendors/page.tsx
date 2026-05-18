@@ -2,22 +2,28 @@
 
 import { useEffect, useState } from 'react'
 import { Shell } from '@/components/shell/Shell'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card } from '@/components/ui/Card'
-import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import { listVendors, createVendor, type Vendor } from '@/lib/api/vendors'
-import { Building2, Plus, X, Globe, Mail } from 'lucide-react'
+import { Building2, Plus, X, Globe, ExternalLink } from 'lucide-react'
 
-type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'outline'
+const riskBadge: Record<string, string> = {
+  critical: 'bg-red-100 text-red-700',
+  high: 'bg-orange-100 text-orange-700',
+  medium: 'bg-amber-100 text-amber-700',
+  low: 'bg-emerald-100 text-emerald-700',
+  unknown: 'bg-gray-100 text-gray-500',
+}
 
-const riskVariant = (risk: string): BadgeVariant => {
-  if (risk === 'high' || risk === 'critical') return 'danger'
-  if (risk === 'medium') return 'warning'
-  if (risk === 'low') return 'success'
-  return 'default'
+const categoryColors = [
+  'bg-blue-100 text-blue-700',
+  'bg-purple-100 text-purple-700',
+  'bg-teal-100 text-teal-700',
+  'bg-indigo-100 text-indigo-700',
+]
+
+function getCategoryColor(name: string) {
+  const idx = name.charCodeAt(0) % categoryColors.length
+  return categoryColors[idx]
 }
 
 function AddVendorModal({ onClose, onCreated }: {
@@ -28,6 +34,7 @@ function AddVendorModal({ onClose, onCreated }: {
   const [name, setName] = useState('')
   const [website, setWebsite] = useState('')
   const [contactEmail, setContactEmail] = useState('')
+  const [description, setDescription] = useState('')
   const [riskLevel, setRiskLevel] = useState('medium')
   const [submitting, setSubmitting] = useState(false)
 
@@ -35,7 +42,7 @@ function AddVendorModal({ onClose, onCreated }: {
     e.preventDefault()
     setSubmitting(true)
     try {
-      const vendor = await createVendor({ name, website, contact_email: contactEmail, risk_level: riskLevel, status: 'active' })
+      const vendor = await createVendor({ name, website, contact_email: contactEmail, description, risk_level: riskLevel, status: 'active' })
       toast('Vendor added.', 'success')
       onCreated(vendor)
     } catch {
@@ -47,33 +54,82 @@ function AddVendorModal({ onClose, onCreated }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-card-lg">
-        <div className="flex items-center justify-between">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md card-elevated p-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-gray-900">Add Vendor</h2>
           <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <Input label="Vendor Name" value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="Company name" required />
-          <Input label="Website" value={website} onChange={(e) => setWebsite(e.target.value)}
-            placeholder="https://example.com" />
-          <Input label="Contact Email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
-            placeholder="contact@example.com" />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-600">Risk Level</label>
-            <select value={riskLevel} onChange={(e) => setRiskLevel(e.target.value)}
-              className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-[#0f1f3d] focus:ring-2 focus:ring-[#0f1f3d]/10">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">Vendor Name</label>
+            <input
+              className="input-base"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Company name"
+              required
+            />
+          </div>
+          <div>
+            <label className="label">Description</label>
+            <input
+              className="input-base"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What does this vendor provide?"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Website</label>
+              <input
+                className="input-base"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://..."
+              />
+            </div>
+            <div>
+              <label className="label">Contact Email</label>
+              <input
+                className="input-base"
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="contact@..."
+              />
+            </div>
+          </div>
+          <div>
+            <label className="label">Risk Level</label>
+            <select
+              value={riskLevel}
+              onChange={(e) => setRiskLevel(e.target.value)}
+              className="input-base"
+            >
               {['low', 'medium', 'high', 'critical'].map((r) => (
-                <option key={r} value={r}>{r}</option>
+                <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
               ))}
             </select>
           </div>
           <div className="flex justify-end gap-3 pt-1">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Add Vendor'}</Button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition disabled:opacity-60"
+            >
+              {submitting ? 'Adding...' : 'Add Vendor'}
+            </button>
           </div>
         </form>
       </div>
@@ -95,79 +151,95 @@ export default function VendorsPage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
-          <p className="mt-0.5 text-sm text-gray-500">Track third-party AI vendors and their risk levels</p>
+          <h1 className="page-title">Vendors</h1>
+          <p className="page-subtitle">Third-party AI vendors and risk assessments</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Vendor
-        </Button>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
+        >
+          <Plus className="h-4 w-4" />Add Vendor
+        </button>
       </div>
 
       {loading && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-in">
           {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <Skeleton className="h-5 w-32 mb-2" />
-              <Skeleton className="h-4 w-48 mb-1" />
-              <Skeleton className="h-4 w-40" />
-            </Card>
+            <div key={i} className="card p-4 space-y-3">
+              <div className="shimmer h-5 rounded w-40" />
+              <div className="shimmer h-4 rounded w-full" />
+              <div className="shimmer h-5 rounded-full w-16" />
+              <div className="shimmer h-8 rounded-lg w-full" />
+            </div>
           ))}
         </div>
       )}
 
       {!loading && vendors.length === 0 && (
-        <div className="mt-10 flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-50">
-            <Building2 className="h-8 w-8 text-purple-200" />
+        <div className="empty-state">
+          <div className="empty-icon">
+            <Building2 className="h-6 w-6 text-gray-400" />
           </div>
-          <div>
-            <p className="text-base font-semibold text-gray-700">No vendors tracked</p>
-            <p className="mt-1 text-sm text-gray-400">Add your first AI vendor to start risk tracking.</p>
-          </div>
-          <Button variant="outline" onClick={() => setShowCreate(true)} className="gap-2">
+          <p className="empty-title">No vendors tracked</p>
+          <p className="empty-body">Add your first AI vendor to start risk tracking.</p>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+          >
             <Plus className="h-4 w-4" />Add Vendor
-          </Button>
+          </button>
         </div>
       )}
 
       {!loading && vendors.length > 0 && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-in">
           {vendors.map((vendor) => (
-            <Card key={vendor.id} className="flex flex-col gap-3">
+            <div key={vendor.id} className="card p-4 flex flex-col gap-3">
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0f1f3d]/5">
-                    <Building2 className="h-4 w-4 text-[#0f1f3d]" />
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1B2A4A]/6">
+                    <Building2 className="h-4 w-4 text-[#1B2A4A]" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{vendor.name}</p>
-                    <Badge variant={riskVariant(vendor.risk_level)} className="capitalize mt-0.5">{vendor.risk_level} risk</Badge>
+                    <h3 className="text-sm font-bold text-gray-900">{vendor.name}</h3>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${getCategoryColor(vendor.name)}`}>
+                      AI Vendor
+                    </span>
                   </div>
                 </div>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${riskBadge[vendor.risk_level] ?? 'bg-gray-100 text-gray-500'}`}>
+                  {vendor.risk_level}
+                </span>
               </div>
+
+              {vendor.description && (
+                <p className="text-xs text-gray-500 line-clamp-2">{vendor.description}</p>
+              )}
+
               {vendor.website && (
-                <a href={vendor.website} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
+                <a
+                  href={vendor.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
+                >
                   <Globe className="h-3 w-3" />
                   {vendor.website.replace(/^https?:\/\//, '')}
                 </a>
               )}
-              {vendor.contact_email && (
-                <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <Mail className="h-3 w-3" />
-                  {vendor.contact_email}
-                </div>
-              )}
-              <div className="flex items-center justify-between pt-1 border-t border-gray-100">
-                <Badge variant={vendor.status === 'active' ? 'success' : 'default'} className="capitalize">
+
+              <div className="flex items-center justify-between pt-2 mt-auto border-t border-gray-50">
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${vendor.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'} capitalize`}>
                   {vendor.status}
-                </Badge>
-                <span className="text-xs text-gray-400">{new Date(vendor.created_at).toLocaleDateString()}</span>
+                </span>
+                <button className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-[#1B2A4A] hover:bg-[#1B2A4A]/5 transition">
+                  <ExternalLink className="h-3 w-3" />
+                  View Assessments
+                </button>
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}

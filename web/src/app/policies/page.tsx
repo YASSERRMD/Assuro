@@ -2,23 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { Shell } from '@/components/shell/Shell'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card } from '@/components/ui/Card'
-import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import { listPolicies, createPolicy, updatePolicyStatus, attestPolicy, type Policy } from '@/lib/api/policies'
 import { FileCheck, Plus, X, ShieldCheck } from 'lucide-react'
 
-type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'outline'
+const statusConfig: Record<string, { badge: string; label: string }> = {
+  draft: { badge: 'bg-gray-100 text-gray-600', label: 'Draft' },
+  active: { badge: 'bg-emerald-100 text-emerald-700', label: 'Active' },
+  approved: { badge: 'bg-emerald-100 text-emerald-700', label: 'Approved' },
+  under_review: { badge: 'bg-blue-100 text-blue-700', label: 'Under Review' },
+  archived: { badge: 'bg-gray-100 text-gray-400', label: 'Archived' },
+}
 
-const statusVariant = (status: string): BadgeVariant => {
-  if (status === 'active' || status === 'approved') return 'success'
-  if (status === 'draft') return 'warning'
-  if (status === 'archived') return 'default'
-  if (status === 'under_review') return 'info'
-  return 'default'
+function getStatus(status: string) {
+  return statusConfig[status] ?? { badge: 'bg-gray-100 text-gray-500', label: status }
 }
 
 function CreatePolicyModal({ onClose, onCreated }: {
@@ -47,32 +44,60 @@ function CreatePolicyModal({ onClose, onCreated }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-gray-100 bg-white p-6 shadow-card-lg">
-        <div className="flex items-center justify-between">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg card-elevated p-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-gray-900">Create Policy</h2>
           <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)}
-            placeholder="Policy title" required />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-600">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-              placeholder="Policy summary..." rows={2}
-              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#0f1f3d] focus:ring-2 focus:ring-[#0f1f3d]/10" />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">Title</label>
+            <input
+              className="input-base"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Policy title"
+              required
+            />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-600">Content</label>
-            <textarea value={content} onChange={(e) => setContent(e.target.value)}
-              placeholder="Policy content..." rows={5}
-              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#0f1f3d] focus:ring-2 focus:ring-[#0f1f3d]/10" />
+          <div>
+            <label className="label">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Policy summary..."
+              rows={2}
+              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#1B2A4A] focus:ring-2 focus:ring-[#1B2A4A]/10"
+            />
+          </div>
+          <div>
+            <label className="label">Content</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Policy content..."
+              rows={5}
+              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#1B2A4A] focus:ring-2 focus:ring-[#1B2A4A]/10"
+            />
           </div>
           <div className="flex justify-end gap-3 pt-1">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Create Policy'}</Button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition disabled:opacity-60"
+            >
+              {submitting ? 'Creating...' : 'Create Policy'}
+            </button>
           </div>
         </form>
       </div>
@@ -114,82 +139,117 @@ export default function PoliciesPage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Policies</h1>
-          <p className="mt-0.5 text-sm text-gray-500">Manage AI governance policies and attestations</p>
+          <h1 className="page-title">Policies</h1>
+          <p className="page-subtitle">Manage AI governance policies and attestations</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Policy
-        </Button>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
+        >
+          <Plus className="h-4 w-4" />New Policy
+        </button>
       </div>
 
       {loading && (
-        <div className="mt-6 space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <Skeleton className="h-5 w-56 mb-2" />
-              <Skeleton className="h-4 w-full mb-1" />
-              <Skeleton className="h-4 w-3/4" />
-            </Card>
-          ))}
+        <div className="card animate-in overflow-hidden">
+          <div className="divide-y divide-gray-50">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3">
+                <div className="shimmer h-4 rounded w-48" />
+                <div className="shimmer h-5 rounded-full w-16 ml-auto" />
+                <div className="shimmer h-5 rounded-full w-16" />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {!loading && policies.length === 0 && (
-        <div className="mt-10 flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50">
-            <FileCheck className="h-8 w-8 text-blue-200" />
+        <div className="empty-state">
+          <div className="empty-icon">
+            <FileCheck className="h-6 w-6 text-gray-400" />
           </div>
-          <div>
-            <p className="text-base font-semibold text-gray-700">No policies yet</p>
-            <p className="mt-1 text-sm text-gray-400">Create governance policies for your AI systems.</p>
-          </div>
-          <Button variant="outline" onClick={() => setShowCreate(true)} className="gap-2">
+          <p className="empty-title">No policies yet</p>
+          <p className="empty-body">Create governance policies for your AI systems.</p>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+          >
             <Plus className="h-4 w-4" />Create Policy
-          </Button>
+          </button>
         </div>
       )}
 
       {!loading && policies.length > 0 && (
-        <div className="mt-6 space-y-3">
-          {policies.map((policy) => (
-            <Card key={policy.id} className="flex items-start gap-4">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#0f1f3d]/5 mt-0.5">
-                <FileCheck className="h-4 w-4 text-[#0f1f3d]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-semibold text-gray-900">{policy.title}</p>
-                  <Badge variant="outline" className="text-[10px]">v{policy.version}</Badge>
-                  <Badge variant={statusVariant(policy.status)} className="capitalize">{policy.status.replace(/_/g, ' ')}</Badge>
-                </div>
-                {policy.description && (
-                  <p className="mt-1 text-sm text-gray-500 line-clamp-2">{policy.description}</p>
-                )}
-                {policy.owner_email && (
-                  <p className="mt-1 text-xs text-gray-400">Owner: {policy.owner_email}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {policy.status === 'draft' && (
-                  <Button variant="outline" onClick={() => handlePublish(policy)}
-                    className="text-xs px-2 py-1 h-auto">
-                    Publish
-                  </Button>
-                )}
-                <button
-                  onClick={() => handleAttest(policy.id)}
-                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 transition"
-                  title="Attest this policy"
-                >
-                  <ShieldCheck className="h-3 w-3" />
-                  Attest
-                </button>
-              </div>
-            </Card>
-          ))}
+        <div className="card animate-in overflow-hidden">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Version</th>
+                <th>Status</th>
+                <th>Owner</th>
+                <th>Last Updated</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {policies.map((policy) => {
+                const sc = getStatus(policy.status)
+                return (
+                  <tr key={policy.id}>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-gray-900">{policy.title}</p>
+                          {policy.description && (
+                            <p className="text-xs text-gray-400 truncate max-w-xs">{policy.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600">
+                        Governance
+                      </span>
+                    </td>
+                    <td className="font-mono text-xs text-gray-500">v{policy.version}</td>
+                    <td>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${sc.badge}`}>
+                        {sc.label}
+                      </span>
+                    </td>
+                    <td className="text-xs text-gray-500">{policy.owner_email ?? '-'}</td>
+                    <td className="text-xs text-gray-400">
+                      {new Date(policy.updated_at ?? policy.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {policy.status === 'draft' && (
+                          <button
+                            onClick={() => handlePublish(policy)}
+                            className="rounded-lg px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 transition"
+                          >
+                            Publish
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleAttest(policy.id)}
+                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 transition"
+                        >
+                          <ShieldCheck className="h-3 w-3" />Attest
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

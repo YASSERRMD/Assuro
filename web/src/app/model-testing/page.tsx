@@ -2,22 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { Shell } from '@/components/shell/Shell'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card } from '@/components/ui/Card'
-import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import { listTestSuites, createTestSuite, createTestRun, type TestSuite } from '@/lib/api/testing'
 import { TestTube2, Plus, X, Play, CheckCircle, XCircle } from 'lucide-react'
 
-type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'outline'
-
-const statusVariant = (status: string): BadgeVariant => {
-  if (status === 'passed') return 'success'
-  if (status === 'failed') return 'danger'
-  if (status === 'running') return 'info'
-  return 'default'
+const statusBadge: Record<string, string> = {
+  passed: 'bg-emerald-100 text-emerald-700',
+  failed: 'bg-red-100 text-red-700',
+  running: 'bg-blue-100 text-blue-700',
+  idle: 'bg-gray-100 text-gray-500',
 }
 
 function CreateSuiteModal({ onClose, onCreated }: {
@@ -45,26 +38,50 @@ function CreateSuiteModal({ onClose, onCreated }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-card-lg">
-        <div className="flex items-center justify-between">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md card-elevated p-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-gray-900">Create Test Suite</h2>
           <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <Input label="Suite Name" value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="E.g. Bias Detection Suite" required />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-600">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-              placeholder="What does this test suite verify?" rows={3}
-              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#0f1f3d] focus:ring-2 focus:ring-[#0f1f3d]/10" />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">Suite Name</label>
+            <input
+              className="input-base"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Bias Detection Suite"
+              required
+            />
+          </div>
+          <div>
+            <label className="label">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What does this test suite verify?"
+              rows={3}
+              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#1B2A4A] focus:ring-2 focus:ring-[#1B2A4A]/10"
+            />
           </div>
           <div className="flex justify-end gap-3 pt-1">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Create Suite'}</Button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition disabled:opacity-60"
+            >
+              {submitting ? 'Creating...' : 'Create Suite'}
+            </button>
           </div>
         </form>
       </div>
@@ -99,99 +116,136 @@ export default function ModelTestingPage() {
     }
   }
 
+  const totalSuites = suites.length
+  const passing = suites.filter((s) => s.status === 'passed').length
+  const failing = suites.filter((s) => s.status === 'failed').length
+  const avgScore = totalSuites > 0
+    ? Math.round((passing / totalSuites) * 100)
+    : 0
+
   return (
     <Shell>
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Model Testing</h1>
-          <p className="mt-0.5 text-sm text-gray-500">Define and run test suites for AI model evaluation</p>
+          <h1 className="page-title">Model Testing</h1>
+          <p className="page-subtitle">Define and run test suites for AI model evaluation</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Test Suite
-        </Button>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
+        >
+          <Plus className="h-4 w-4" />Create Suite
+        </button>
       </div>
 
-      {loading && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <Skeleton className="h-5 w-40 mb-2" />
-              <Skeleton className="h-4 w-full mb-4" />
-              <div className="flex gap-2">
-                <Skeleton className="h-5 w-16 rounded-full" />
-                <Skeleton className="h-5 w-20 rounded-full" />
+      {/* Stats row */}
+      {!loading && suites.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 animate-in">
+          {[
+            { label: 'Total Suites', value: totalSuites, icon: TestTube2, color: 'bg-[#1B2A4A]/6 text-[#1B2A4A]' },
+            { label: 'Passing', value: passing, icon: CheckCircle, color: 'bg-emerald-50 text-emerald-600' },
+            { label: 'Failing', value: failing, icon: XCircle, color: 'bg-red-50 text-red-600' },
+            { label: 'Pass Rate', value: `${avgScore}%`, icon: TestTube2, color: 'bg-blue-50 text-blue-600' },
+          ].map((stat) => (
+            <div key={stat.label} className="stat-card">
+              <div className={`flex h-8 w-8 items-center justify-center rounded-lg mb-2 ${stat.color}`}>
+                <stat.icon className="h-4 w-4" />
               </div>
-            </Card>
+              <div className="stat-value">{stat.value}</div>
+              <div className="stat-label">{stat.label}</div>
+            </div>
           ))}
+        </div>
+      )}
+
+      {loading && (
+        <div className="card animate-in overflow-hidden">
+          <div className="divide-y divide-gray-50">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3">
+                <div className="shimmer h-4 rounded w-40" />
+                <div className="shimmer h-5 rounded-full w-16 ml-auto" />
+                <div className="shimmer h-5 rounded-full w-16" />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {!loading && suites.length === 0 && (
-        <div className="mt-10 flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-50">
-            <TestTube2 className="h-8 w-8 text-cyan-200" />
+        <div className="empty-state">
+          <div className="empty-icon">
+            <TestTube2 className="h-6 w-6 text-gray-400" />
           </div>
-          <div>
-            <p className="text-base font-semibold text-gray-700">No test suites yet</p>
-            <p className="mt-1 text-sm text-gray-400">Create test suites to validate AI model behaviour.</p>
-          </div>
-          <Button variant="outline" onClick={() => setShowCreate(true)} className="gap-2">
+          <p className="empty-title">No test suites yet</p>
+          <p className="empty-body">Create test suites to validate AI model behaviour.</p>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+          >
             <Plus className="h-4 w-4" />Create Test Suite
-          </Button>
+          </button>
         </div>
       )}
 
       {!loading && suites.length > 0 && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {suites.map((suite) => (
-            <Card key={suite.id} className="flex flex-col gap-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50">
-                    <TestTube2 className="h-4 w-4 text-cyan-600" />
-                  </div>
-                  <p className="text-sm font-semibold text-gray-900">{suite.name}</p>
-                </div>
-                <Badge variant={statusVariant(suite.status)} className="capitalize">{suite.status}</Badge>
-              </div>
-              {suite.description && (
-                <p className="text-xs text-gray-500 line-clamp-2">{suite.description}</p>
-              )}
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-xs text-gray-400">{new Date(suite.created_at).toLocaleDateString()}</span>
-                <button
-                  onClick={() => handleRun(suite.id)}
-                  disabled={runningId === suite.id || suite.status === 'running'}
-                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 transition disabled:opacity-50"
-                >
-                  <Play className="h-3 w-3" />
-                  {suite.status === 'running' ? 'Running...' : 'Run'}
-                </button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Summary counts */}
-      {!loading && suites.length > 0 && (
-        <div className="mt-6 grid grid-cols-3 gap-4">
-          {[
-            { label: 'Total Suites', value: suites.length, icon: TestTube2, color: 'text-cyan-600 bg-cyan-50' },
-            { label: 'Passed', value: suites.filter((s) => s.status === 'passed').length, icon: CheckCircle, color: 'text-emerald-600 bg-emerald-50' },
-            { label: 'Failed', value: suites.filter((s) => s.status === 'failed').length, icon: XCircle, color: 'text-red-600 bg-red-50' },
-          ].map((stat) => (
-            <Card key={stat.label} className="flex items-center gap-3">
-              <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${stat.color}`}>
-                <stat.icon className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-xl font-bold text-gray-900">{stat.value}</p>
-                <p className="text-xs text-gray-500">{stat.label}</p>
-              </div>
-            </Card>
-          ))}
+        <div className="card animate-in overflow-hidden">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Suite Name</th>
+                <th>Test Cases</th>
+                <th>Last Run</th>
+                <th>Pass Rate</th>
+                <th>Status</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {suites.map((suite) => {
+                const passRate = suite.status === 'passed' ? '100%' : suite.status === 'failed' ? '0%' : '-'
+                return (
+                  <tr key={suite.id}>
+                    <td>
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-cyan-50">
+                          <TestTube2 className="h-3.5 w-3.5 text-cyan-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{suite.name}</p>
+                          {suite.description && (
+                            <p className="text-xs text-gray-400 truncate max-w-xs">{suite.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="text-sm text-gray-500">
+                      {(suite as { test_cases_count?: number }).test_cases_count ?? 0} cases
+                    </td>
+                    <td className="text-xs text-gray-400">
+                      {new Date(suite.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="text-sm font-semibold text-gray-700">{passRate}</td>
+                    <td>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusBadge[suite.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                        {suite.status}
+                      </span>
+                    </td>
+                    <td className="text-right">
+                      <button
+                        onClick={() => handleRun(suite.id)}
+                        disabled={runningId === suite.id || suite.status === 'running'}
+                        className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 transition disabled:opacity-50"
+                      >
+                        <Play className="h-3 w-3" />
+                        {suite.status === 'running' ? 'Running...' : 'Run'}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
