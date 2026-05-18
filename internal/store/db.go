@@ -32,8 +32,11 @@ func NewDB(ctx context.Context, dsn string) (*DB, error) {
 	return &DB{pool: pool}, nil
 }
 
-// Pool returns the underlying connection pool.
+// Pool returns the underlying connection pool. Returns nil if d is nil.
 func (d *DB) Pool() *pgxpool.Pool {
+	if d == nil {
+		return nil
+	}
 	return d.pool
 }
 
