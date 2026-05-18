@@ -72,13 +72,13 @@ export default function AISystemsPage() {
               <button
                 key={r}
                 onClick={() => setRiskFilter(r)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                className={`rounded-full px-3 py-1 text-xs font-medium transition capitalize ${
                   riskFilter === r
                     ? 'bg-[#1B2A4A] text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {r === 'all' ? 'All' : r}
+                {r === 'all' ? 'All' : r.charAt(0).toUpperCase() + r.slice(1)}
               </button>
             ))}
           </div>
@@ -158,7 +158,7 @@ export default function AISystemsPage() {
                     </div>
                   </td>
                   <td className="text-gray-500">{s.provider || <span className="text-gray-300">-</span>}</td>
-                  <td className="text-gray-500 capitalize">{s.asset_type || '-'}</td>
+                  <td className="text-gray-500">{s.asset_type ? s.asset_type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\bAi\b/g, 'AI') : '-'}</td>
                   <td>
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${riskBadge[s.latest_risk_tier] ?? 'bg-gray-100 text-gray-500'}`}

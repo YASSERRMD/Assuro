@@ -199,7 +199,9 @@ export default function AISystemDetailPage({ params }: { params: Promise<{ id: s
               </Badge>
             } />
             <DetailRow label="Asset Type" value={
-              <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs">{system.asset_type}</span>
+              <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs">
+                {system.asset_type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+              </span>
             } />
           </SectionCard>
 
