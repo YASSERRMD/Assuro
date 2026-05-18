@@ -6,16 +6,14 @@ import { useToast } from '@/components/ui/Toast'
 import { listGuardrails, createGuardrail, updateGuardrail, type Guardrail } from '@/lib/api/agents'
 import { Shield, Plus, X, ToggleLeft, ToggleRight } from 'lucide-react'
 
-const severityFromType: Record<string, { badge: string; label: string }> = {
-  content_filter: { badge: 'bg-red-100 text-red-700', label: 'High' },
-  rate_limit: { badge: 'bg-orange-100 text-orange-700', label: 'Medium' },
-  data_validation: { badge: 'bg-blue-100 text-blue-700', label: 'Low' },
-  output_check: { badge: 'bg-amber-100 text-amber-700', label: 'Medium' },
-  access_control: { badge: 'bg-purple-100 text-purple-700', label: 'High' },
+const policyTypeStyle: Record<string, { badge: string; label: string; icon: string }> = {
+  block: { badge: 'bg-red-100 text-red-700', label: 'Block', icon: 'bg-red-50' },
+  warn:  { badge: 'bg-amber-100 text-amber-700', label: 'Warn', icon: 'bg-amber-50' },
+  log:   { badge: 'bg-blue-100 text-blue-700', label: 'Log', icon: 'bg-blue-50' },
 }
 
-function getSeverity(ruleType: string) {
-  return severityFromType[ruleType] ?? { badge: 'bg-gray-100 text-gray-500', label: 'Unknown' }
+function getPolicyStyle(policyType: string) {
+  return policyTypeStyle[policyType] ?? { badge: 'bg-gray-100 text-gray-500', label: policyType, icon: 'bg-gray-50' }
 }
 
 function CreateGuardrailModal({ onClose, onCreated }: {
@@ -25,14 +23,14 @@ function CreateGuardrailModal({ onClose, onCreated }: {
   const { toast } = useToast()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [ruleType, setRuleType] = useState('content_filter')
+  const [policyType, setPolicyType] = useState('block')
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     setSubmitting(true)
     try {
-      const g = await createGuardrail({ name, description, rule_type: ruleType, enabled: true, config: {} })
+      const g = await createGuardrail({ name, description, policy_type: policyType, enabled: true, conditions: {} })
       toast('Guardrail created.', 'success')
       onCreated(g)
     } catch {
@@ -64,15 +62,15 @@ function CreateGuardrailModal({ onClose, onCreated }: {
             />
           </div>
           <div>
-            <label className="label">Rule Type</label>
+            <label className="label">Policy Type</label>
             <select
-              value={ruleType}
-              onChange={(e) => setRuleType(e.target.value)}
+              value={policyType}
+              onChange={(e) => setPolicyType(e.target.value)}
               className="input-base"
             >
-              {['content_filter', 'rate_limit', 'data_validation', 'output_check', 'access_control'].map((t) => (
-                <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
-              ))}
+              <option value="block">Block — prevent the action</option>
+              <option value="warn">Warn — alert but allow</option>
+              <option value="log">Log — record only</option>
             </select>
           </div>
           <div>
@@ -181,20 +179,20 @@ export default function GuardrailsPage() {
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Type</th>
-                <th>Severity</th>
+                <th>Policy</th>
+                <th>Created</th>
                 <th className="text-right">Status</th>
                 <th className="text-right">Toggle</th>
               </tr>
             </thead>
             <tbody>
               {guardrails.map((g) => {
-                const sev = getSeverity(g.rule_type)
+                const style = getPolicyStyle(g.policy_type)
                 return (
                   <tr key={g.id}>
                     <td>
                       <div className="flex items-center gap-2.5">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#1B2A4A]/6">
+                        <div className={`flex h-7 w-7 items-center justify-center rounded-md ${style.icon}`}>
                           <Shield className="h-3.5 w-3.5 text-[#1B2A4A]" />
                         </div>
                         <div>
@@ -206,13 +204,13 @@ export default function GuardrailsPage() {
                       </div>
                     </td>
                     <td>
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 capitalize">
-                        {g.rule_type.replace(/_/g, ' ')}
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${style.badge}`}>
+                        {g.policy_type}
                       </span>
                     </td>
                     <td>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${sev.badge}`}>
-                        {sev.label}
+                      <span className="text-xs text-gray-400">
+                        {g.created_at ? new Date(g.created_at).toLocaleDateString() : '—'}
                       </span>
                     </td>
                     <td className="text-right">
