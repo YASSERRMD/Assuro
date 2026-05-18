@@ -2,11 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { Shell } from '@/components/shell/Shell'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card } from '@/components/ui/Card'
-import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import {
   listApprovalRequests,
@@ -18,16 +13,13 @@ import {
 } from '@/lib/api/approvals'
 import { GitPullRequest, Plus, X, Check, XCircle } from 'lucide-react'
 
-type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'outline'
-
-const statusVariant = (status: string): BadgeVariant => {
-  if (status === 'approved') return 'success'
-  if (status === 'rejected') return 'danger'
-  if (status === 'pending') return 'warning'
-  return 'default'
-}
-
 type Tab = 'requests' | 'workflows'
+
+const statusBadge: Record<string, string> = {
+  approved: 'bg-emerald-100 text-emerald-700',
+  rejected: 'bg-red-100 text-red-700',
+  pending: 'bg-amber-100 text-amber-700',
+}
 
 function CreateRequestModal({ workflows, onClose, onCreated }: {
   workflows: ApprovalWorkflow[]
@@ -56,35 +48,64 @@ function CreateRequestModal({ workflows, onClose, onCreated }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-card-lg">
-        <div className="flex items-center justify-between">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md card-elevated p-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-gray-900">Submit Approval Request</h2>
           <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <Input label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)}
-            placeholder="What requires approval?" required />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">Subject</label>
+            <input
+              className="input-base"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="What requires approval?"
+              required
+            />
+          </div>
           {workflows.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-gray-600">Workflow</label>
-              <select value={workflowId} onChange={(e) => setWorkflowId(e.target.value)}
-                className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-[#0f1f3d] focus:ring-2 focus:ring-[#0f1f3d]/10">
-                {workflows.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+            <div>
+              <label className="label">Workflow</label>
+              <select
+                value={workflowId}
+                onChange={(e) => setWorkflowId(e.target.value)}
+                className="input-base"
+              >
+                {workflows.map((w) => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
               </select>
             </div>
           )}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-600">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-              placeholder="Details and context..." rows={3}
-              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#0f1f3d] focus:ring-2 focus:ring-[#0f1f3d]/10" />
+          <div>
+            <label className="label">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Details and context..."
+              rows={3}
+              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#1B2A4A] focus:ring-2 focus:ring-[#1B2A4A]/10"
+            />
           </div>
           <div className="flex justify-end gap-3 pt-1">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit'}</Button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition disabled:opacity-60"
+            >
+              {submitting ? 'Submitting...' : 'Submit'}
+            </button>
           </div>
         </form>
       </div>
@@ -120,144 +141,174 @@ export default function ApprovalsPage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Approvals</h1>
-          <p className="mt-0.5 text-sm text-gray-500">Review and decide on governance approval requests</p>
+          <h1 className="page-title">Approvals</h1>
+          <p className="page-subtitle">Review and decide on governance approval requests</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Request
-        </Button>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
+        >
+          <Plus className="h-4 w-4" />New Request
+        </button>
       </div>
 
       {/* Tabs */}
-      <div className="mt-5 flex gap-1 border-b border-gray-200">
+      <div className="tab-nav mb-4 animate-in">
         {(['requests', 'workflows'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`pb-2 px-4 text-sm font-medium transition border-b-2 -mb-px ${
-              tab === t ? 'border-[#0f1f3d] text-[#0f1f3d]' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+            className={`tab-item ${tab === t ? 'active' : ''}`}
           >
-            {t === 'requests' ? 'Requests' : 'Workflows'}
+            {t === 'requests' ? (
+              <>
+                Requests
+                {requests.filter((r) => r.status === 'pending').length > 0 && (
+                  <span className="ml-1 rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[10px] font-bold">
+                    {requests.filter((r) => r.status === 'pending').length}
+                  </span>
+                )}
+              </>
+            ) : 'Workflows'}
           </button>
         ))}
       </div>
 
-      {tab === 'requests' && (
-        <div className="mt-4">
-          {loading && (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Card key={i}>
-                  <Skeleton className="h-5 w-56 mb-2" />
-                  <Skeleton className="h-4 w-full" />
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {!loading && requests.length === 0 && (
-            <div className="mt-8 flex flex-col items-center gap-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-50">
-                <GitPullRequest className="h-8 w-8 text-violet-200" />
+      {loading && (
+        <div className="card animate-in overflow-hidden">
+          <div className="divide-y divide-gray-50">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3">
+                <div className="shimmer h-4 rounded w-48" />
+                <div className="shimmer h-5 rounded-full w-20 ml-auto" />
               </div>
-              <div>
-                <p className="text-base font-semibold text-gray-700">No approval requests</p>
-                <p className="mt-1 text-sm text-gray-400">Submit a request to kick off an approval workflow.</p>
-              </div>
-            </div>
-          )}
-
-          {!loading && requests.length > 0 && (
-            <div className="space-y-3">
-              {requests.map((req) => (
-                <Card key={req.id} className="flex items-start gap-4">
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-violet-50 mt-0.5">
-                    <GitPullRequest className="h-4 w-4 text-violet-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-gray-900">{req.subject}</p>
-                      <Badge variant={statusVariant(req.status)} className="capitalize">{req.status}</Badge>
-                    </div>
-                    {req.description && (
-                      <p className="mt-1 text-xs text-gray-500 line-clamp-2">{req.description}</p>
-                    )}
-                    {req.requester_email && (
-                      <p className="mt-1 text-xs text-gray-400">By {req.requester_email}</p>
-                    )}
-                  </div>
-                  {req.status === 'pending' && (
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => handleDecide(req.id, 'approved')}
-                        className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 transition"
-                      >
-                        <Check className="h-3 w-3" />Approve
-                      </button>
-                      <button
-                        onClick={() => handleDecide(req.id, 'rejected')}
-                        className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 transition"
-                      >
-                        <XCircle className="h-3 w-3" />Reject
-                      </button>
-                    </div>
-                  )}
-                </Card>
-              ))}
-            </div>
-          )}
+            ))}
+          </div>
         </div>
       )}
 
-      {tab === 'workflows' && (
-        <div className="mt-4">
-          {loading && (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <Card key={i}>
-                  <Skeleton className="h-5 w-40 mb-2" />
-                  <Skeleton className="h-4 w-64" />
-                </Card>
-              ))}
-            </div>
-          )}
-          {!loading && workflows.length === 0 && (
-            <div className="mt-8 flex flex-col items-center gap-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-50">
-                <GitPullRequest className="h-8 w-8 text-violet-200" />
+      {/* Requests tab */}
+      {!loading && tab === 'requests' && (
+        <>
+          {requests.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">
+                <GitPullRequest className="h-6 w-6 text-gray-400" />
               </div>
-              <p className="text-base font-semibold text-gray-700">No workflows configured</p>
-              <p className="text-sm text-gray-400">Create approval workflows via the API.</p>
+              <p className="empty-title">No approval requests</p>
+              <p className="empty-body">Submit a request to kick off an approval workflow.</p>
+            </div>
+          ) : (
+            <div className="card animate-in overflow-hidden">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Subject</th>
+                    <th>Requester</th>
+                    <th>Workflow</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                    <th className="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.map((req) => (
+                    <tr key={req.id}>
+                      <td>
+                        <p className="font-medium text-gray-900">{req.subject}</p>
+                        {req.description && (
+                          <p className="text-xs text-gray-400 truncate max-w-xs">{req.description}</p>
+                        )}
+                      </td>
+                      <td className="text-xs text-gray-500">{req.requester_email ?? '-'}</td>
+                      <td className="text-xs text-gray-500">
+                        {workflows.find((w) => w.id === req.workflow_id)?.name ?? '-'}
+                      </td>
+                      <td>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusBadge[req.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                          {req.status}
+                        </span>
+                      </td>
+                      <td className="text-xs text-gray-400">
+                        {new Date(req.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="text-right">
+                        {req.status === 'pending' && (
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => handleDecide(req.id, 'approved')}
+                              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition"
+                            >
+                              <Check className="h-3 w-3" />Approve
+                            </button>
+                            <button
+                              onClick={() => handleDecide(req.id, 'rejected')}
+                              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition"
+                            >
+                              <XCircle className="h-3 w-3" />Reject
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
-          {!loading && workflows.length > 0 && (
-            <div className="space-y-3">
-              {workflows.map((wf) => (
-                <Card key={wf.id} className="flex items-start gap-4">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900">{wf.name}</p>
-                    {wf.description && (
-                      <p className="mt-1 text-xs text-gray-500">{wf.description}</p>
-                    )}
-                    {wf.steps && wf.steps.length > 0 && (
-                      <div className="mt-2 flex items-center gap-2 flex-wrap">
-                        {wf.steps.map((step) => (
-                          <Badge key={step.step} variant="outline" className="text-[10px]">
-                            Step {step.step}: {step.approver_role}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              ))}
+        </>
+      )}
+
+      {/* Workflows tab */}
+      {!loading && tab === 'workflows' && (
+        <>
+          {workflows.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">
+                <GitPullRequest className="h-6 w-6 text-gray-400" />
+              </div>
+              <p className="empty-title">No workflows configured</p>
+              <p className="empty-body">Create approval workflows via the API.</p>
+            </div>
+          ) : (
+            <div className="card animate-in overflow-hidden">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Workflow</th>
+                    <th>Description</th>
+                    <th>Steps</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {workflows.map((wf) => (
+                    <tr key={wf.id}>
+                      <td className="font-medium text-gray-900">{wf.name}</td>
+                      <td className="text-xs text-gray-500">{wf.description ?? '-'}</td>
+                      <td>
+                        <div className="flex flex-wrap gap-1">
+                          {(wf.steps ?? []).map((step) => (
+                            <span
+                              key={step.step}
+                              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-violet-100 text-violet-700"
+                            >
+                              Step {step.step}: {step.approver_role}
+                            </span>
+                          ))}
+                          {(!wf.steps || wf.steps.length === 0) && (
+                            <span className="text-xs text-gray-400">No steps defined</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
-        </div>
+        </>
       )}
 
       {showCreate && (
