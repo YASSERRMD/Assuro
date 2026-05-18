@@ -5,8 +5,9 @@ import { ToastProvider } from '@/components/ui/Toast'
 import '@/styles/globals.css'
 
 export const metadata: Metadata = {
-  title: 'Assuro',
+  title: 'Assuro — AI Governance Platform',
   description: 'AI Safety and Governance Assessment Platform',
+  icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
