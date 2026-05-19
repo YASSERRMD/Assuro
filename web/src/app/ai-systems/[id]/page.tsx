@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Shell } from '@/components/shell/Shell'
@@ -305,20 +306,20 @@ export default function AISystemDetailPage({ params }: { params: Promise<{ id: s
           <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Quick Actions</p>
             <div className="space-y-2">
-              <a
+              <Link
                 href="/assessments"
                 className="flex w-full items-center gap-2 rounded-lg border border-gray-100 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
               >
                 <Box className="h-3.5 w-3.5 text-gray-400" />
                 View Assessments
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/reports"
                 className="flex w-full items-center gap-2 rounded-lg border border-gray-100 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
               >
                 <Server className="h-3.5 w-3.5 text-gray-400" />
                 Generate Report
-              </a>
+              </Link>
             </div>
           </div>
         </div>
