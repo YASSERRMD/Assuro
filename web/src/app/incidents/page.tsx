@@ -138,8 +138,6 @@ export default function IncidentsPage() {
     ]).then(([incs, sys]) => { setIncidents(incs); setSystems(sys) }).finally(() => setLoading(false))
   }, [])
 
-  const systemMap = Object.fromEntries(systems.map((s) => [s.id, s.name]))
-
   const filtered = severityFilter === 'all'
     ? incidents
     : incidents.filter((i) => i.severity === severityFilter)
@@ -247,8 +245,8 @@ export default function IncidentsPage() {
                       {inc.status}
                     </span>
                   </td>
-                  <td className="text-xs text-gray-600">
-                    {inc.asset_id ? (systemMap[inc.asset_id] ?? inc.asset_id.slice(0, 8) + '…') : '-'}
+                  <td className="text-xs text-gray-500 font-mono">
+                    {inc.asset_id ? inc.asset_id.slice(0, 8) + '...' : '-'}
                   </td>
                   <td className="text-xs text-gray-500">{'-'}</td>
                   <td className="text-xs text-gray-400">

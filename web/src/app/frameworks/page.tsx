@@ -73,15 +73,14 @@ export default function FrameworksPage() {
     }
   }, [tab, soaAssetId, loadSoA])
 
-  const handleSetStatus = async (controlKey: string, controlId: string, status: string): Promise<void> => {
-    if (!soaAssetId) { toast('Select an AI system first.', 'warning'); return }
+  const handleSetStatus = async (controlKey: string, status: string): Promise<void> => {
+    const ctrl = controls.find((c) => c.key === controlKey)
+    if (!ctrl) return
     try {
-      await setControlStatus(soaAssetId, controlId, status, '')
-      setSoaData((prev) => {
-        const exists = prev.find((c) => c.control_key === controlKey)
-        if (exists) return prev.map((c) => c.control_key === controlKey ? { ...c, status } : c)
-        return [...prev, { control_key: controlKey, control_title: '', status, justification: '' }]
-      })
+      await setControlStatus(soaAssetId, ctrl.id, status, '')
+      setSoaData((prev) =>
+        prev.map((c) => c.control_key === controlKey ? { ...c, status } : c)
+      )
       toast('Control status updated.', 'success')
     } catch {
       toast('Failed to update status.', 'error')
@@ -93,18 +92,6 @@ export default function FrameworksPage() {
     : []
 
   const domains = [...new Set(frameworkControls.map((c) => c.domain))].sort()
-
-  // Merge all framework controls with any existing SoA status entries
-  const soaRows = frameworkControls.map((ctrl) => {
-    const existing = soaData.find((s) => s.control_key === ctrl.key)
-    return {
-      control_id: ctrl.id,
-      control_key: ctrl.key,
-      control_title: ctrl.title,
-      status: existing?.status ?? 'not_started',
-      justification: existing?.justification ?? '',
-    }
-  })
 
   return (
     <Shell>
@@ -259,15 +246,10 @@ export default function FrameworksPage() {
                 <div className="space-y-2">
                   {[1, 2, 3].map((i) => <div key={i} className="shimmer h-10 rounded-xl" />)}
                 </div>
-              ) : !soaAssetId ? (
+              ) : soaData.length === 0 ? (
                 <div className="empty-state">
-                  <p className="empty-title">No AI system selected</p>
-                  <p className="empty-body">Select an AI system above to manage its compliance status.</p>
-                </div>
-              ) : soaRows.length === 0 ? (
-                <div className="empty-state">
-                  <p className="empty-title">No controls for this framework</p>
-                  <p className="empty-body">Select a framework above to see its controls.</p>
+                  <p className="empty-title">No SoA data</p>
+                  <p className="empty-body">Select an AI system above to view its Statement of Applicability.</p>
                 </div>
               ) : (
                 <div className="card overflow-hidden">
@@ -280,7 +262,7 @@ export default function FrameworksPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {soaRows.map((c) => (
+                      {soaData.map((c) => (
                         <tr key={c.control_key}>
                           <td>
                             <div className="font-mono text-xs font-semibold text-gray-500">{c.control_key}</div>
@@ -294,7 +276,7 @@ export default function FrameworksPage() {
                           <td>
                             <select
                               value={c.status}
-                              onChange={(e) => handleSetStatus(c.control_key, c.control_id, e.target.value)}
+                              onChange={(e) => handleSetStatus(c.control_key, e.target.value)}
                               className="rounded border border-gray-200 px-2 py-1 text-xs outline-none focus:border-[#1B2A4A]"
                             >
                               <option value="not_started">Not Started</option>

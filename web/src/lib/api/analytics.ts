@@ -18,27 +18,8 @@ export interface RiskTrendPoint {
   score: number
 }
 
-interface StatsResponse {
-  total_ai_systems: number
-  by_risk_tier: Record<string, number>
-  open_incidents: number
-  completed_assessments: number
-  framework_coverage: Array<{ framework_key: string; coverage_pct: number }>
-}
-
 export async function getAnalyticsDashboard(): Promise<AnalyticsDashboard> {
-  const stats = await typedFetch<StatsResponse>('/v1/stats')
-  return {
-    total_ai_systems: stats.total_ai_systems ?? 0,
-    total_agents: 0,
-    open_incidents: stats.open_incidents ?? 0,
-    pending_approvals: 0,
-    compliance_score: stats.framework_coverage?.length
-      ? Math.round(stats.framework_coverage.reduce((s, f) => s + (f.coverage_pct ?? 0), 0) / stats.framework_coverage.length)
-      : 0,
-    risk_by_tier: stats.by_risk_tier ?? {},
-    incidents_by_severity: {},
-  }
+  return typedFetch<AnalyticsDashboard>('/v1/analytics/dashboard')
 }
 
 export async function getRiskTrend(params?: Record<string, string>): Promise<RiskTrendPoint[]> {
