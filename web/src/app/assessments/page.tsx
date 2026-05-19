@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Shell } from '@/components/shell/Shell'
 import { listAssessments, listAssessmentTemplates, type Assessment, type AssessmentTemplate } from '@/lib/api/assessments'
@@ -35,6 +37,7 @@ function getFrameworkLabel(templateKey: string): string {
 const frameworkFilters = ['all', 'eu_ai_act', 'nist_ai_rmf', 'iso_42001']
 
 export default function AssessmentsPage() {
+  const router = useRouter()
   const [assessments, setAssessments] = useState<Assessment[]>([])
   const [systems, setSystems] = useState<AISystem[]>([])
   const [templates, setTemplates] = useState<AssessmentTemplate[]>([])
@@ -72,12 +75,12 @@ export default function AssessmentsPage() {
           <h1 className="page-title">Assessments</h1>
           <p className="page-subtitle">Compliance assessments across AI systems</p>
         </div>
-        <a
+        <Link
           href="/ai-systems"
           className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
         >
           + New Assessment
-        </a>
+        </Link>
       </div>
 
       {/* Framework filter */}
@@ -123,12 +126,12 @@ export default function AssessmentsPage() {
               ? 'Open an AI system and start an assessment from its detail page.'
               : 'No assessments match the selected framework.'}
           </p>
-          <a
+          <Link
             href="/ai-systems"
             className="mt-3 text-sm font-medium text-[#1B2A4A] underline underline-offset-4 hover:opacity-70"
           >
             View AI Systems
-          </a>
+          </Link>
         </div>
       )}
 
@@ -155,16 +158,16 @@ export default function AssessmentsPage() {
                   <tr
                     key={a.id}
                     className="cursor-pointer"
-                    onClick={() => { window.location.href = `/assessments/${a.id}` }}
+                    onClick={() => router.push(`/assessments/${a.id}`)}
                   >
                     <td>
-                      <a
+                      <Link
                         href={`/assessments/${a.id}`}
                         className="font-mono text-xs font-medium text-[#1B2A4A] hover:underline"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {a.id.slice(0, 8)}…
-                      </a>
+                      </Link>
                       {tpl && (
                         <div className="text-[10px] text-gray-400 mt-0.5">{tpl.title}</div>
                       )}
@@ -173,13 +176,13 @@ export default function AssessmentsPage() {
                       <span className="text-xs text-gray-700">{fwLabel}</span>
                     </td>
                     <td>
-                      <a
+                      <Link
                         href={`/ai-systems/${a.asset_id}`}
                         className="text-xs font-medium text-gray-700 hover:text-[#1B2A4A]"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {systemName}
-                      </a>
+                      </Link>
                     </td>
                     <td>
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${sc.badge}`}>
