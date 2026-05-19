@@ -9,11 +9,11 @@ export interface ModelCard {
   version: string
   published: boolean
   published_at?: string
-  intended_use: unknown
-  out_of_scope_use: unknown
-  limitations: unknown
-  training_data: unknown
-  evaluation_results: unknown
+  intended_use: string
+  out_of_scope_use: string
+  limitations: string
+  training_data: string
+  evaluation_results: string
   created_at: string
   updated_at: string
 }

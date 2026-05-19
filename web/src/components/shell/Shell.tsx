@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/context'
 import {
@@ -126,7 +125,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 const active = pathname === item.href || pathname.startsWith(item.href + '/')
                 const Icon = item.icon
                 return (
-                  <Link
+                  <a
                     key={item.href}
                     href={item.href}
                     className={`nav-item ${active ? 'active' : ''}`}
@@ -140,7 +139,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     {active && (
                       <ChevronRight className="ml-auto h-3 w-3 text-white/20" strokeWidth={2} />
                     )}
-                  </Link>
+                  </a>
                 )
               })}
             </div>

@@ -11,16 +11,11 @@ const statusConfig: Record<string, { badge: string; label: string }> = {
   active: { badge: 'bg-emerald-100 text-emerald-700', label: 'Active' },
   approved: { badge: 'bg-emerald-100 text-emerald-700', label: 'Approved' },
   under_review: { badge: 'bg-blue-100 text-blue-700', label: 'Under Review' },
-  in_review: { badge: 'bg-blue-100 text-blue-700', label: 'In Review' },
   archived: { badge: 'bg-gray-100 text-gray-400', label: 'Archived' },
 }
 
-function fmtLabel(s: string) {
-  return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
 function getStatus(status: string) {
-  return statusConfig[status] ?? { badge: 'bg-gray-100 text-gray-500', label: fmtLabel(status) }
+  return statusConfig[status] ?? { badge: 'bg-gray-100 text-gray-500', label: status }
 }
 
 function CreatePolicyModal({ onClose, onCreated }: {

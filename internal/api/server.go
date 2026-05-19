@@ -83,7 +83,7 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(30 * time.Second))
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001", "http://localhost:3002"},
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:3001"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -241,12 +241,10 @@ func NewServer(addr string, logger *zap.Logger, opts ...ServerOption) *Server {
 		r.Patch("/v1/regulatory/impacts/{id}", regIntelH.UpdateImpactStatus)
 
 		// Assessments
-		r.Get("/v1/assessment-templates", assessH.ListTemplates)
 		r.Post("/v1/assessments", assessH.Create)
 		r.Get("/v1/assessments", assessH.List)
 		r.Get("/v1/assessments/{id}", assessH.GetOne)
 		r.Get("/v1/assessments/{id}/questions", assessH.GetQuestions)
-		r.Get("/v1/assessments/{id}/responses", assessH.GetResponses)
 		r.Post("/v1/assessments/{id}/responses", assessH.SaveResponse)
 		r.Post("/v1/assessments/{id}/submit", assessH.Submit)
 
