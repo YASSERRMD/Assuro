@@ -215,6 +215,66 @@ type questionResponse struct {
 	Required   bool   `json:"required"`
 }
 
+type savedResponseItem struct {
+	QuestionID string `json:"question_id"`
+	Answer     any    `json:"answer"`
+	Note       string `json:"note"`
+	AnsweredAt string `json:"answered_at"`
+}
+
+// GetResponses handles GET /v1/assessments/{id}/responses.
+func (h *AssessmentHandler) GetResponses(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		WriteError(w, http.StatusUnauthorized, "unauthenticated", "not authenticated")
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		WriteError(w, http.StatusBadRequest, "invalid_request", "assessment id is required")
+		return
+	}
+
+	responses, err := h.svc.GetResponses(r.Context(), p.OrgID, id)
+	if err != nil {
+		WriteError(w, http.StatusNotFound, "not_found", "assessment not found")
+		return
+	}
+
+	items := make([]savedResponseItem, len(responses))
+	for i, resp := range responses {
+		var answer any
+		if len(resp.Answer) > 0 {
+			_ = json.Unmarshal(resp.Answer, &answer)
+		}
+		item := savedResponseItem{
+			QuestionID: resp.QuestionID.String(),
+			Answer:     answer,
+			Note:       resp.Note.String,
+		}
+		if resp.AnsweredAt.Valid {
+			item.AnsweredAt = resp.AnsweredAt.Time.Format("2006-01-02T15:04:05Z")
+		}
+		items[i] = item
+	}
+	writeJSON(w, http.StatusOK, items)
+}
+
+// ListTemplates handles GET /v1/assessment-templates.
+func (h *AssessmentHandler) ListTemplates(w http.ResponseWriter, r *http.Request) {
+	templates, err := h.svc.ListTemplates(r.Context())
+	if err != nil {
+		h.logger.Error("list templates failed", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "internal_error", "failed to list templates")
+		return
+	}
+	if templates == nil {
+		templates = []service.TemplateInfo{}
+	}
+	writeJSON(w, http.StatusOK, templates)
+}
+
 // GetQuestions handles GET /v1/assessments/{id}/questions.
 func (h *AssessmentHandler) GetQuestions(w http.ResponseWriter, r *http.Request) {
 	p, ok := auth.PrincipalFromContext(r.Context())

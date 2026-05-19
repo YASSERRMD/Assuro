@@ -212,3 +212,46 @@ func (s *AssessmentService) GetQuestionsByTemplate(ctx context.Context, template
 
 	return questions, nil
 }
+
+// TemplateInfo is a lightweight summary of an assessment template.
+type TemplateInfo struct {
+	ID    string `json:"id"`
+	Key   string `json:"key"`
+	Title string `json:"title"`
+}
+
+// ListTemplates returns all assessment templates.
+func (s *AssessmentService) ListTemplates(ctx context.Context) ([]TemplateInfo, error) {
+	rows, err := s.db.Pool().Query(ctx, "SELECT id, key, title FROM assessment_templates ORDER BY key")
+	if err != nil {
+		return nil, fmt.Errorf("list templates: %w", err)
+	}
+	defer rows.Close()
+
+	var results []TemplateInfo
+	for rows.Next() {
+		var t TemplateInfo
+		if err := rows.Scan(&t.ID, &t.Key, &t.Title); err != nil {
+			return nil, fmt.Errorf("scan template: %w", err)
+		}
+		results = append(results, t)
+	}
+	return results, rows.Err()
+}
+
+// GetResponses returns all saved responses for a completed assessment.
+func (s *AssessmentService) GetResponses(ctx context.Context, orgID, assessmentID string) ([]qgen.AssessmentResponse, error) {
+	oID := parseUUID(orgID)
+	aID := parseUUID(assessmentID)
+
+	if _, err := s.queries.GetAssessmentByIDAndOrg(ctx, qgen.GetAssessmentByIDAndOrgParams{ID: aID, OrgID: oID}); err != nil {
+		return nil, fmt.Errorf("assessment not found: %w", err)
+	}
+
+	responses, err := s.queries.GetResponsesByAssessment(ctx, aID)
+	if err != nil {
+		return nil, fmt.Errorf("get responses: %w", err)
+	}
+
+	return responses, nil
+}

@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Shell } from '@/components/shell/Shell'
 import { listAISystems, type AISystem } from '@/lib/api/aisystems'
@@ -21,6 +23,7 @@ const statusDot: Record<string, string> = {
 }
 
 export default function AISystemsPage() {
+  const router = useRouter()
   const [systems, setSystems] = useState<AISystem[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -45,13 +48,13 @@ export default function AISystemsPage() {
           <h1 className="page-title">AI Systems</h1>
           <p className="page-subtitle">Inventory of AI systems under governance</p>
         </div>
-        <a
+        <Link
           href="/ai-systems/new"
           className="inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
         >
           <Plus className="h-4 w-4" />
           Register System
-        </a>
+        </Link>
       </div>
 
       {/* Search + filter bar */}
@@ -72,13 +75,13 @@ export default function AISystemsPage() {
               <button
                 key={r}
                 onClick={() => setRiskFilter(r)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                className={`rounded-full px-3 py-1 text-xs font-medium transition capitalize ${
                   riskFilter === r
                     ? 'bg-[#1B2A4A] text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {r === 'all' ? 'All' : r}
+                {r === 'all' ? 'All' : r.charAt(0).toUpperCase() + r.slice(1)}
               </button>
             ))}
           </div>
@@ -113,12 +116,12 @@ export default function AISystemsPage() {
               : 'Try adjusting your search or filter.'}
           </p>
           {systems.length === 0 && (
-            <a
+            <Link
               href="/ai-systems/new"
               className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#1B2A4A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d1526] transition-colors"
             >
               <Plus className="h-4 w-4" />Register System
-            </a>
+            </Link>
           )}
         </div>
       )}
@@ -140,7 +143,7 @@ export default function AISystemsPage() {
                 <tr
                   key={s.id}
                   className="cursor-pointer"
-                  onClick={() => { window.location.href = `/ai-systems/${s.id}` }}
+                  onClick={() => router.push(`/ai-systems/${s.id}`)}
                 >
                   <td>
                     <div className="flex items-center gap-2">
@@ -148,17 +151,17 @@ export default function AISystemsPage() {
                         className={`h-2 w-2 flex-shrink-0 rounded-full ${statusDot[s.lifecycle_status] ?? 'bg-gray-300'}`}
                         title={s.lifecycle_status}
                       />
-                      <a
+                      <Link
                         href={`/ai-systems/${s.id}`}
                         className="font-medium text-[#1B2A4A] hover:underline"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {s.name}
-                      </a>
+                      </Link>
                     </div>
                   </td>
                   <td className="text-gray-500">{s.provider || <span className="text-gray-300">-</span>}</td>
-                  <td className="text-gray-500 capitalize">{s.asset_type || '-'}</td>
+                  <td className="text-gray-500">{s.asset_type ? s.asset_type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\bAi\b/g, 'AI') : '-'}</td>
                   <td>
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${riskBadge[s.latest_risk_tier] ?? 'bg-gray-100 text-gray-500'}`}
